@@ -15,22 +15,22 @@ datasource db {
 // Tcell users are identified by phone number.
 // ─────────────────────────────────────────────
 model User {
-  id           String    @id @db.Uuid
-  username     String    @unique
-  email        String    @unique
-  phone        String?   @unique
-  name         String?
-  avatarUrl    String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @default(now()) @updatedAt
+  id        String   @id @db.Uuid
+  username  String   @unique
+  email     String   @unique
+  phone     String?  @unique
+  name      String?
+  avatarUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
-  wallet               Wallet?
-  challengesCreated    Challenge[]           @relation("ChallengeCreator")
-  participations       ChallengeParticipant[]
-  goalsCreated         Goal[]                @relation("GoalCreator")
-  goalCollaborations   GoalCollaborator[]
-  messages             Message[]
-  notifications        Notification[]
+  wallet             Wallet?
+  challengesCreated  Challenge[]            @relation("ChallengeCreator")
+  participations     ChallengeParticipant[]
+  goalsCreated       Goal[]                 @relation("GoalCreator")
+  goalCollaborations GoalCollaborator[]
+  messages           Message[]
+  notifications      Notification[]
 
   @@index([email])
   @@index([username])
@@ -46,16 +46,16 @@ model User {
 // Together: balance + lockedBalance = total money
 // ─────────────────────────────────────────────
 model Wallet {
-  id            String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  userId        String              @unique @db.Uuid
-  balance       Decimal             @default(2000.00) @db.Decimal(10, 2)
-  lockedBalance Decimal             @default(0.00) @db.Decimal(10, 2)
-  currency      String              @default("TJS")
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @default(now()) @updatedAt
+  id            String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId        String   @unique @db.Uuid
+  balance       Decimal  @default(2000.00) @db.Decimal(10, 2)
+  lockedBalance Decimal  @default(0.00) @db.Decimal(10, 2)
+  currency      String   @default("TJS")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now()) @updatedAt
 
-  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions  WalletTransaction[]
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions WalletTransaction[]
 
   @@index([userId])
 }
@@ -71,18 +71,18 @@ model Wallet {
 // referenceType — "CHALLENGE" or "GOAL"
 // ─────────────────────────────────────────────
 model WalletTransaction {
-  id             String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  walletId       String            @db.Uuid
-  type           TransactionType
-  amount         Decimal           @db.Decimal(10, 2)
-  balanceBefore  Decimal           @db.Decimal(10, 2)
-  balanceAfter   Decimal           @db.Decimal(10, 2)
-  description    String?
-  referenceId    String?           @db.Uuid
-  referenceType  String?           // "CHALLENGE" or "GOAL"
-  createdAt      DateTime          @default(now())
+  id            String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  walletId      String          @db.Uuid
+  type          TransactionType
+  amount        Decimal         @db.Decimal(10, 2)
+  balanceBefore Decimal         @db.Decimal(10, 2)
+  balanceAfter  Decimal         @db.Decimal(10, 2)
+  description   String?
+  referenceId   String?         @db.Uuid
+  referenceType String? // "CHALLENGE" or "GOAL"
+  createdAt     DateTime        @default(now())
 
-  wallet         Wallet            @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
 
   @@index([walletId])
   @@index([referenceId])
@@ -105,19 +105,19 @@ model WalletTransaction {
 // status        — lifecycle of the bill
 // ─────────────────────────────────────────────
 model Challenge {
-  id            String                 @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  createdBy     String                 @db.Uuid
-  title         String
-  description   String?
-  category      ChallengeCategory      // RENT, ELECTRICITY, WATER, INTERNET, OTHER
-  totalAmount   Decimal                @db.Decimal(10, 2)
-  splitType     SplitType              @default(EQUAL)
-  destination   String?                // Who gets paid at the end
-  deadline      DateTime?              // Optional
-  status        ChallengeStatus        @default(ACTIVE)
-  completedAt   DateTime?
-  createdAt     DateTime               @default(now())
-  updatedAt     DateTime               @default(now()) @updatedAt
+  id          String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  createdBy   String            @db.Uuid
+  title       String
+  description String?
+  category    ChallengeCategory // RENT, ELECTRICITY, WATER, INTERNET, OTHER
+  totalAmount Decimal           @db.Decimal(10, 2)
+  splitType   SplitType         @default(EQUAL)
+  destination String? // Who gets paid at the end
+  deadline    DateTime? // Optional
+  status      ChallengeStatus   @default(ACTIVE)
+  completedAt DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @default(now()) @updatedAt
 
   creator       User                   @relation("ChallengeCreator", fields: [createdBy], references: [id], onDelete: Cascade)
   participants  ChallengeParticipant[]
@@ -142,19 +142,19 @@ model Challenge {
 // isAdmin      — can edit/cancel the challenge
 // ─────────────────────────────────────────────
 model ChallengeParticipant {
-  id           String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  challengeId  String            @db.Uuid
-  userId       String            @db.Uuid
-  shareAmount  Decimal           @db.Decimal(10, 2)
-  status       ParticipantStatus @default(INVITED)
-  isAdmin      Boolean           @default(false)
-  lockedAt     DateTime?         // When soft lock was applied
-  paidAt       DateTime?         // When payment fired
-  joinedAt     DateTime          @default(now())
-  updatedAt    DateTime          @default(now()) @updatedAt
+  id          String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  challengeId String            @db.Uuid
+  userId      String            @db.Uuid
+  shareAmount Decimal           @db.Decimal(10, 2)
+  status      ParticipantStatus @default(INVITED)
+  isAdmin     Boolean           @default(false)
+  lockedAt    DateTime? // When soft lock was applied
+  paidAt      DateTime? // When payment fired
+  joinedAt    DateTime          @default(now())
+  updatedAt   DateTime          @default(now()) @updatedAt
 
-  challenge    Challenge         @relation(fields: [challengeId], references: [id], onDelete: Cascade)
-  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challenge Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([challengeId, userId])
   @@index([challengeId])
@@ -177,25 +177,25 @@ model ChallengeParticipant {
 //   PUBLIC          → anyone can see, none contribute
 // ─────────────────────────────────────────────
 model Goal {
-  id                   String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  createdBy            String             @db.Uuid
+  id                   String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  createdBy            String         @db.Uuid
   title                String
   description          String?
-  targetAmount         Decimal            @db.Decimal(10, 2)
-  currentAmount        Decimal            @default(0.00) @db.Decimal(10, 2)
-  contributionAmount   Decimal            @db.Decimal(10, 2)
-  frequency            GoalFrequency      // DAILY, WEEKLY, MONTHLY
+  targetAmount         Decimal        @db.Decimal(10, 2)
+  currentAmount        Decimal        @default(0.00) @db.Decimal(10, 2)
+  contributionAmount   Decimal        @db.Decimal(10, 2)
+  frequency            GoalFrequency // DAILY, WEEKLY, MONTHLY
   nextContributionDate DateTime?
-  visibility           GoalVisibility     @default(PRIVATE)
-  status               GoalStatus         @default(ACTIVE)
+  visibility           GoalVisibility @default(PRIVATE)
+  status               GoalStatus     @default(ACTIVE)
   completedAt          DateTime?
-  createdAt            DateTime           @default(now())
-  updatedAt            DateTime           @default(now()) @updatedAt
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @default(now()) @updatedAt
 
-  creator              User               @relation("GoalCreator", fields: [createdBy], references: [id], onDelete: Cascade)
-  collaborators        GoalCollaborator[]
-  messages             Message[]          @relation("GoalMessages")
-  notifications        Notification[]
+  creator       User               @relation("GoalCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  collaborators GoalCollaborator[]
+  messages      Message[]          @relation("GoalMessages")
+  notifications Notification[]
 
   @@index([createdBy])
   @@index([status])
@@ -210,14 +210,14 @@ model Goal {
 //                    this person has put in
 // ─────────────────────────────────────────────
 model GoalCollaborator {
-  id                 String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  goalId             String    @db.Uuid
-  userId             String    @db.Uuid
-  totalContributed   Decimal   @default(0.00) @db.Decimal(10, 2)
-  joinedAt           DateTime  @default(now())
+  id               String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  goalId           String   @db.Uuid
+  userId           String   @db.Uuid
+  totalContributed Decimal  @default(0.00) @db.Decimal(10, 2)
+  joinedAt         DateTime @default(now())
 
-  goal               Goal      @relation(fields: [goalId], references: [id], onDelete: Cascade)
-  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  goal Goal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([goalId, userId])
   @@index([goalId])
@@ -237,17 +237,17 @@ model GoalCollaborator {
 //   "2 days left on deadline ⏰"
 // ─────────────────────────────────────────────
 model Message {
-  id           String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  challengeId  String?     @db.Uuid
-  goalId       String?     @db.Uuid
-  senderId     String?     @db.Uuid  // null = system message
-  content      String
-  type         MessageType @default(USER)
-  createdAt    DateTime    @default(now())
+  id          String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  challengeId String?     @db.Uuid
+  goalId      String?     @db.Uuid
+  senderId    String?     @db.Uuid // null = system message
+  content     String
+  type        MessageType @default(USER)
+  createdAt   DateTime    @default(now())
 
-  challenge    Challenge?  @relation("ChallengeMessages", fields: [challengeId], references: [id], onDelete: Cascade)
-  goal         Goal?       @relation("GoalMessages", fields: [goalId], references: [id], onDelete: Cascade)
-  sender       User?       @relation(fields: [senderId], references: [id], onDelete: SetNull)
+  challenge Challenge? @relation("ChallengeMessages", fields: [challengeId], references: [id], onDelete: Cascade)
+  goal      Goal?      @relation("GoalMessages", fields: [goalId], references: [id], onDelete: Cascade)
+  sender    User?      @relation(fields: [senderId], references: [id], onDelete: SetNull)
 
   @@index([challengeId])
   @@index([goalId])
@@ -264,19 +264,19 @@ model Message {
 // referenceType — "CHALLENGE" or "GOAL"
 // ─────────────────────────────────────────────
 model Notification {
-  id            String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  userId        String           @db.Uuid
-  challengeId   String?          @db.Uuid
-  goalId        String?          @db.Uuid
-  type          NotificationType
-  title         String
-  body          String
-  read          Boolean          @default(false)
-  createdAt     DateTime         @default(now())
+  id          String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId      String           @db.Uuid
+  challengeId String?          @db.Uuid
+  goalId      String?          @db.Uuid
+  type        NotificationType
+  title       String
+  body        String
+  read        Boolean          @default(false)
+  createdAt   DateTime         @default(now())
 
-  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  challenge     Challenge?       @relation(fields: [challengeId], references: [id])
-  goal          Goal?            @relation(fields: [goalId], references: [id])
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challenge Challenge? @relation(fields: [challengeId], references: [id])
+  goal      Goal?      @relation(fields: [goalId], references: [id])
 
   @@index([userId])
   @@index([read])
@@ -288,12 +288,12 @@ model Notification {
 // ─────────────────────────────────────────────
 
 enum TransactionType {
-  TOPUP         // Money added to wallet manually
-  LOCK          // Soft locked on challenge commit
-  UNLOCK        // Released when challenge fails/cancelled
-  PAYMENT       // Fired when challenge completes
-  CONTRIBUTION  // Added to a goal pool
-  REWARD        // Bonus credited after completion
+  TOPUP // Money added to wallet manually
+  LOCK // Soft locked on challenge commit
+  UNLOCK // Released when challenge fails/cancelled
+  PAYMENT // Fired when challenge completes
+  CONTRIBUTION // Added to a goal pool
+  REWARD // Bonus credited after completion
 }
 
 enum ChallengeCategory {
@@ -307,22 +307,22 @@ enum ChallengeCategory {
 }
 
 enum SplitType {
-  EQUAL   // App divides totalAmount evenly
-  CUSTOM  // Each participant has manual shareAmount
+  EQUAL // App divides totalAmount evenly
+  CUSTOM // Each participant has manual shareAmount
 }
 
 enum ChallengeStatus {
-  ACTIVE      // Running, accepting commitments
-  COMPLETED   // Everyone paid
-  FAILED      // Deadline passed, not complete
-  CANCELLED   // Creator cancelled
+  ACTIVE // Running, accepting commitments
+  COMPLETED // Everyone paid
+  FAILED // Deadline passed, not complete
+  CANCELLED // Creator cancelled
 }
 
 enum ParticipantStatus {
-  INVITED    // Added but no response yet
-  COMMITTED  // Joined + money soft locked
-  PAID       // Payment fired
-  DECLINED   // They said no
+  INVITED // Added but no response yet
+  COMMITTED // Joined + money soft locked
+  PAID // Payment fired
+  DECLINED // They said no
 }
 
 enum GoalFrequency {
@@ -332,9 +332,9 @@ enum GoalFrequency {
 }
 
 enum GoalVisibility {
-  PRIVATE        // Only creator sees and contributes
-  COLLABORATIVE  // Invited people contribute together
-  PUBLIC         // Anyone can see, nobody else contributes
+  PRIVATE // Only creator sees and contributes
+  COLLABORATIVE // Invited people contribute together
+  PUBLIC // Anyone can see, nobody else contributes
 }
 
 enum GoalStatus {
@@ -344,19 +344,19 @@ enum GoalStatus {
 }
 
 enum MessageType {
-  USER    // Real person sent this
-  SYSTEM  // App generated this automatically
+  USER // Real person sent this
+  SYSTEM // App generated this automatically
 }
 
 enum NotificationType {
-  SOMEONE_COMMITTED      // A participant locked their share
-  SOMEONE_PAID           // A participant completed payment
-  YOU_ARE_LAST           // Everyone else committed except you
-  DEADLINE_APPROACHING   // 48 or 24 hours left
-  NO_ACTIVITY_REMINDER   // Bill has no deadline, people inactive
-  CHALLENGE_COMPLETE     // Everyone paid, bill done
-  CHALLENGE_FAILED       // Deadline passed, someone didn't pay
-  GOAL_CONTRIBUTION_DUE  // Your scheduled contribution is today
-  GOAL_MILESTONE         // 25%, 50%, 75%, 100% reached
-  NEW_INVITE             // You were added to a challenge or goal
+  SOMEONE_COMMITTED // A participant locked their share
+  SOMEONE_PAID // A participant completed payment
+  YOU_ARE_LAST // Everyone else committed except you
+  DEADLINE_APPROACHING // 48 or 24 hours left
+  NO_ACTIVITY_REMINDER // Bill has no deadline, people inactive
+  CHALLENGE_COMPLETE // Everyone paid, bill done
+  CHALLENGE_FAILED // Deadline passed, someone didn't pay
+  GOAL_CONTRIBUTION_DUE // Your scheduled contribution is today
+  GOAL_MILESTONE // 25%, 50%, 75%, 100% reached
+  NEW_INVITE // You were added to a challenge or goal
 }
