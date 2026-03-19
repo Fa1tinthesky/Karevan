@@ -23,3 +23,5 @@ Editor directories and files
 *.njsproj
 *.sln
 *.sw?
+
+/src/generated/prisma
