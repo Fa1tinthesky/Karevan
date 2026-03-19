@@ -13,11 +13,15 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.4",
+    "@tailwindcss/vite": "^4.2.2",
     "@tanstack/react-query": "^5.91.0",
+    "autoprefixer": "^10.4.27",
+    "postcss": "^8.5.8",
     "prisma": "^7.5.0",
     "react": "^19.0.0",
     "react-dom": "^19.1.0",
-    "react-router-dom": "^7.6.2"
+    "react-router-dom": "^7.6.2",
+    "tailwindcss": "^4.2.2"
   },
   "devDependencies": {
     "@types/react": "^19.0.7",
