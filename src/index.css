@@ -1,121 +1,113 @@
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: "Inter", sans-serif !important;
-}
-body {
-  background-color: #1c1c1c; /* Darker background, closer to Supabase style */
-  color: white;
-}
-main {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-top: 10vh;
-}
-a {
-  text-decoration: none;
-}
-.header-text {
-  display: flex;
-  gap: 0.5em;
-  align-items: center;
-  padding: 0.5em 1em;
-  font-weight: bold;
-  background: none;
-  text-align: center;
-}
-.main-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background-color: #2a2a2a; /* Slightly lighter than body, but still dark */
-  padding: 2em 2em;
-  width: 100%;
-  max-width: 500px;
-  border-radius: 4px; /* Slightly rounded corners */
-  box-shadow: 0 0 60px rgba(0, 0, 0, 0.2);
-  border-top: 5px;
-  border-width: 10px 0px 0px 0px;
-  border-style: solid;
-  border-color: #3ecf8e; /* Supabase green */
-}
-#github-repo-link {
-  display: flex;
-  gap: 0.5em;
-  margin-top: 0;
-  align-items: center;
-  padding: 0.5em 1em;
-  font-weight: bold;
-  background: none;
-  cursor: pointer;
-  color: #3ecf8e; /* Supabase green */
-}
-#github-repo-link:hover {
-  background-color: rgba(
-    62,
-    207,
-    142,
-    0.1
-  ); /* Supabase green with low opacity */
-}
-input {
-  padding: 1rem;
-  border-radius: 4px;
-  outline: none;
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
-  background-color: #3a3a3a; /* Slightly lighter than container background */
-  border: 1px solid #4a4a4a;
-  font-size: 1rem;
-  color: white;
-  margin-top: 7px;
-  width: 300px;
-}
-button,
-a {
-  font-size: 16px;
-  padding: 1em;
-  background: none;
-  cursor: pointer;
-  color: white;
-  background: #229f65; /* Supabase green */
-  border: none;
-  border-radius: 4px;
-  transition: background-color 0.3s;
-  width: 300px;
-  text-align: center;
-  margin-top: 1em;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 40px;
-  font-weight: bold;
-  border: 1px solid #33b379; /* Supabase green */
+@import "tailwindcss";
+
+:root {
+  --text: #6b6375;
+  --text-h: #08060d;
+  --bg: #fff;
+  --border: #e5e4e7;
+  --code-bg: #f4f3ec;
+  --accent: #aa3bff;
+  --accent-bg: rgba(170, 59, 255, 0.1);
+  --accent-border: rgba(170, 59, 255, 0.5);
+  --social-bg: rgba(244, 243, 236, 0.5);
+  --shadow:
+    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+
+  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --mono: ui-monospace, Consolas, monospace;
+
+  font: 18px/145% var(--sans);
+  letter-spacing: 0.18px;
+  color-scheme: light dark;
+  color: var(--text);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  @media (max-width: 1024px) {
+    font-size: 16px;
+  }
 }
 
-a {
-  border: none;
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #9ca3af;
+    --text-h: #f3f4f6;
+    --bg: #16171d;
+    --border: #2e303a;
+    --code-bg: #1f2028;
+    --accent: #c084fc;
+    --accent-bg: rgba(192, 132, 252, 0.15);
+    --accent-border: rgba(192, 132, 252, 0.5);
+    --social-bg: rgba(47, 48, 58, 0.5);
+    --shadow:
+      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+  }
+
+  #social .button-icon {
+    filter: invert(1) brightness(2);
+  }
 }
-button:hover,
-a:hover {
-  background: #2ebd80; /* Slightly darker Supabase green for hover */
+
+body {
+  margin: 0;
 }
-.home-link {
-  margin-bottom: 1em;
+
+#root {
+  width: 1126px;
+  max-width: 100%;
+  margin: 0 auto;
+  text-align: center;
+  border-inline: 1px solid var(--border);
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
 }
-.auth-link {
-  background: transparent;
-  color: #3ecf8e; /* Supabase green */
+
+h1,
+h2 {
+  font-family: var(--heading);
+  font-weight: 500;
+  color: var(--text-h);
 }
-.auth-link:hover {
-  background: transparent;
-  text-decoration: underline;
+
+h1 {
+  font-size: 56px;
+  letter-spacing: -1.68px;
+  margin: 32px 0;
+  @media (max-width: 1024px) {
+    font-size: 36px;
+    margin: 20px 0;
+  }
 }
-#divider {
-  width: 70%;
-  height: 2px;
-  background-color: #3ecf8e; /* Supabase green */
-  margin: 1em 0;
-  border-radius: 100%;
+h2 {
+  font-size: 24px;
+  line-height: 118%;
+  letter-spacing: -0.24px;
+  margin: 0 0 8px;
+  @media (max-width: 1024px) {
+    font-size: 20px;
+  }
+}
+p {
+  margin: 0;
+}
+
+code,
+.counter {
+  font-family: var(--mono);
+  display: inline-flex;
+  border-radius: 4px;
+  color: var(--text-h);
+}
+
+code {
+  font-size: 15px;
+  line-height: 135%;
+  padding: 4px 8px;
+  background: var(--code-bg);
 }
