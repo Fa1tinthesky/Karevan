@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import '../index.css';
 import supabase from "../supabase";
 import { useSession } from "../context/SessionContext";
 
@@ -7,7 +8,7 @@ const HomePage = () => {
   return (
     <main>
       <section className="main-container">
-        <h1 className="header-text">React Supabase Auth Template</h1>
+        <h1 className="header-text py-2 px-2 font-bold">React Supabase Auth Template</h1>
         <p>Current User : {session?.user.email || "None"}</p>
         {session ? (
           <button onClick={() => supabase.auth.signOut()}>Sign Out</button>
