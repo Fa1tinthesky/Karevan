@@ -1,18 +1,37 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import { Eye, EyeOff, Phone, User } from "lucide-react";
+import { useSession } from "../../context/SessionContext";
+import supabase from "../../supabase";
+
 
 const Signup = () => {
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
-  const handleSignup = (e: React.FormEvent) => {
+  const { session } = useSession();
+  if (session) return <Navigate to="/" />;
+
+  const [status, setStatus] = useState("");
+
+  // const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   setFormValues({ ...formValues, [e.target.name]: e.target.value });
+  // };
+  //
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    navigate("/");
+    setStatus("Creating account...");
+    const { error } = await supabase.auth.signUp({
+      email: email,
+      password: password,
+    });
+    if (error) {
+      alert(error.message);
+    }
+    setStatus("");
   };
 
   return (
@@ -33,32 +52,33 @@ const Signup = () => {
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        onSubmit={handleSignup}
+        onSubmit={handleSubmit}
         className="flex-1 px-6 pt-8 space-y-4"
       >
-        <div>
-          <label className="text-foreground text-sm font-medium mb-2 block">Full Name</label>
-          <div className="relative">
-            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Enter your name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full bg-secondary border-0 rounded-xl py-3.5 pl-11 pr-4 text-foreground placeholder:text-muted-foreground text-sm focus:ring-2 focus:ring-primary outline-none"
-            />
-          </div>
-        </div>
+        {/* <div> */}
+        {/*   <label className="text-foreground text-sm font-medium mb-2 block">Full Name</label> */}
+        {/*   <div className="relative"> */}
+        {/*     <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /> */}
+        {/*     <input */}
+        {/*       type="text" */}
+        {/**/}
+        {/*       placeholder="Enter your name" */}
+        {/*       value={name} */}
+        {/*       onChange={handleInputChange} */}
+        {/*       className="w-full bg-secondary border-0 rounded-xl py-3.5 pl-11 pr-4 text-foreground placeholder:text-muted-foreground text-sm focus:ring-2 focus:ring-primary outline-none" */}
+        {/*     /> */}
+        {/*   </div> */}
+        {/* </div> */}
 
         <div>
           <label className="text-foreground text-sm font-medium mb-2 block">Phone Number</label>
           <div className="relative">
             <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
-              type="tel"
-              placeholder="+992 90 123 4567"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              type="tcell"
+              placeholder="megabonk@gmail.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="w-full bg-secondary border-0 rounded-xl py-3.5 pl-11 pr-4 text-foreground placeholder:text-muted-foreground text-sm focus:ring-2 focus:ring-primary outline-none"
             />
           </div>
@@ -71,6 +91,7 @@ const Signup = () => {
               type={showPassword ? "text" : "password"}
               placeholder="Create password"
               value={password}
+              name="password"
               onChange={(e) => setPassword(e.target.value)}
               className="w-full bg-secondary border-0 rounded-xl py-3.5 pl-4 pr-11 text-foreground placeholder:text-muted-foreground text-sm focus:ring-2 focus:ring-primary outline-none"
             />
@@ -98,11 +119,12 @@ const Signup = () => {
 
         <p className="text-center text-muted-foreground text-sm">
           Already have an account?{" "}
-          <button type="button" onClick={() => navigate("/login")} className="text-primary font-semibold">
+          <button type="button" onClick={() => navigate("/auth/login")} className="text-primary font-semibold">
             Sign In
           </button>
         </p>
-      </motion.form>
+      </motion.form> 
+        {status && <p>{status}</p>}
     </div>
   );
 };

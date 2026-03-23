@@ -1,17 +1,45 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Phone } from "lucide-react";
+import { useNavigate, Link, Navigate } from "react-router-dom";
+import { Eye, EyeOff, Mail } from "lucide-react";
+import { useSession } from "../../context/SessionContext";
+import supabase from "../../supabase";
 
 const Login = () => {
-  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
+  // const [formValues, setFormValues] = useState({
+  //   email: "",
+  //   password: "",
+  // });
   const navigate = useNavigate();
+
+  const { session } = useSession();
+  if (session) return <Navigate to="/" />;
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     navigate("/");
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormValues({ ...formValues, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setStatus("Logging in...");
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email,
+      password: password,
+    });
+    if (error) {
+      alert(error.message);
+    }
+    setStatus("");
   };
 
   return (
@@ -34,18 +62,20 @@ const Login = () => {
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        onSubmit={handleLogin}
+        onSubmit={handleSubmit}
         className="flex-1 px-6 pt-8 space-y-5"
       >
         <div>
           <label className="text-foreground text-sm font-medium mb-2 block">Phone Number</label>
           <div className="relative">
-            <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
-              type="tel"
-              placeholder="+992 90 123 4567"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              type="tcell"
+              name="email"
+              placeholder="megabonk@gmail.com"
+              value={email}
+              type="email"
+              onChange={(e) => {setEmail(e.target.value)}}
               className="w-full bg-secondary border-0 rounded-xl py-3.5 pl-11 pr-4 text-foreground placeholder:text-muted-foreground text-sm focus:ring-2 focus:ring-primary outline-none"
             />
           </div>
@@ -56,9 +86,11 @@ const Login = () => {
           <div className="relative">
             <input
               type={showPassword ? "text" : "password"}
+              name="password"
+              type="password"
               placeholder="Enter password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {setPassword(e.target.value)}}
               className="w-full bg-secondary border-0 rounded-xl py-3.5 pl-4 pr-11 text-foreground placeholder:text-muted-foreground text-sm focus:ring-2 focus:ring-primary outline-none"
             />
             <button
@@ -92,6 +124,7 @@ const Login = () => {
             Sign Up
           </button>
         </p>
+        {status && <p>{status}</p>}
       </motion.form>
     </div>
   );
