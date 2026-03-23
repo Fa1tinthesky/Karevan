@@ -7,7 +7,5 @@ if (!import.meta.env.VITE_SUPABASE_URL) {
   throw new Error("VITE_SUPABASE_URL is required");
 }
 
-console.log(import.meta.env.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY);
-console.log(import.meta.env.VITE_SUPABASE_URL);
 export const SUPABASE_PUBLISHABLE_DEFAULT_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY;
 export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
