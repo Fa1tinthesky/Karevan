@@ -1,13 +1,17 @@
 import { createBrowserRouter } from "react-router-dom";
 import "../index.css";
+
 import HomePage from "../pages/HomePage.tsx";
-import SignInPage from "../pages/auth/SignInPage.tsx";
-import SignUpPage from "../pages/auth/SignUpPage.tsx";
+import NotFound from "@/pages/NotFound.tsx";
 import OnboardingPage from "../pages/OnboardingPage.tsx";
-import NotFoundPage from "../pages/404Page.tsx";
 import AuthProtectedRoute from "./AuthProtectedRoute.tsx";
 import Providers from "../providers/Providers.tsx";
 import OnboardingCheckRoute from "./OnboardingCheckRoute.tsx";
+import Wallet from "@/pages/Wallet.tsx";
+import GoalDetail from "@/pages/GoalDetail.tsx";
+import Signup from "@/pages/auth/Signup.tsx";
+import Login from "@/pages/auth/Login.tsx";
+
 
 const router = createBrowserRouter([
   // I recommend you reflect the routes here in the pages folder
@@ -28,6 +32,14 @@ const router = createBrowserRouter([
                 path: "/",
                 element: <HomePage />,
               },
+              {
+                  path: "/wallet",
+                  element: <Wallet />
+              },
+              {
+                  path: "/goal/:id",
+                  element: <GoalDetail />
+              }
             ],
           },
           {
@@ -37,18 +49,18 @@ const router = createBrowserRouter([
         ],
       },
       {
-        path: "/auth/sign-in",
-        element: <SignInPage />,
+        path: "/auth/login",
+        element: <Login />,
       },
       {
         path: "/auth/sign-up",
-        element: <SignUpPage />,
+        element: <Signup />,
       },
     ],
   },
   {
     path: "*",
-    element: <NotFoundPage />,
+    element: <NotFound />,
   },
 ]);
 
