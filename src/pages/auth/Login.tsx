@@ -120,7 +120,7 @@ const Login = () => {
 
         <p className="text-center text-muted-foreground text-sm">
           Don't have an account?{" "}
-          <button type="button" onClick={() => navigate("/signup")} className="text-primary font-semibold">
+          <button type="button" onClick={() => navigate("/auth/sign-up")} className="text-primary font-semibold">
             Sign Up
           </button>
         </p>

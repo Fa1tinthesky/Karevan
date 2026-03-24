@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
-import { Eye, EyeOff, Phone, User } from "lucide-react";
+import { Eye, EyeOff, Mail, User } from "lucide-react";
 import { useSession } from "../../context/SessionContext";
 import supabase from "../../supabase";
 
@@ -71,9 +71,9 @@ const Signup = () => {
         {/* </div> */}
 
         <div>
-          <label className="text-foreground text-sm font-medium mb-2 block">Phone Number</label>
+          <label className="text-foreground text-sm font-medium mb-2 block">Email</label>
           <div className="relative">
-            <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               type="tcell"
               placeholder="megabonk@gmail.com"
