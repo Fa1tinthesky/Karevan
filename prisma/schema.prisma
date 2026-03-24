@@ -23,7 +23,7 @@ model User {
   updatedAt DateTime @default(now()) @updatedAt
 
   wallet        Wallet?
-  groupsCreated Group[]         @relation("GroupCreator")
+  groupsCreated Group[]             @relation("GroupCreator")
   memberships   GroupMember[]
   contributions GroupContribution[]
   messages      Message[]
@@ -102,7 +102,7 @@ model WalletTransaction {
 model Group {
   id            String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   createdBy     String      @db.Uuid
-  type          GroupType   // BILL or GOAL
+  type          GroupType // BILL or GOAL
   title         String
   description   String?
   status        GroupStatus @default(ACTIVE)
@@ -114,9 +114,9 @@ model Group {
 
   // BILL only — null for goals
   category    GroupCategory? // RENT, ELECTRICITY, WATER etc
-  splitType   SplitType?     // EQUAL or CUSTOM
-  destination String?        // landlord phone, bill reference
-  deadline    DateTime?      // optional hard cutoff
+  splitType   SplitType? // EQUAL or CUSTOM
+  destination String? // landlord phone, bill reference
+  deadline    DateTime? // optional hard cutoff
 
   // GOAL only — null for bills
   frequency            GoalFrequency? // DAILY, WEEKLY, MONTHLY
@@ -158,13 +158,13 @@ model GroupMember {
   groupId String @db.Uuid
   userId  String @db.Uuid
 
-  isAdmin  Boolean     @default(false)
-  joinedAt DateTime    @default(now())
-  updatedAt DateTime   @default(now()) @updatedAt
+  isAdmin   Boolean  @default(false)
+  joinedAt  DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
   // BILL only — null for goals
-  shareAmount Decimal?      @db.Decimal(10, 2)
-  status      MemberStatus  @default(INVITED)
+  shareAmount Decimal?     @db.Decimal(10, 2)
+  status      MemberStatus @default(INVITED)
   lockedAt    DateTime?
   paidAt      DateTime?
 
@@ -195,11 +195,11 @@ model GroupMember {
 // This is the full history for both types.
 // ─────────────────────────────────────────────
 model GroupContribution {
-  id       String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  groupId  String   @db.Uuid
-  userId   String   @db.Uuid
-  memberId String   @db.Uuid
-  amount   Decimal  @db.Decimal(10, 2)
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  groupId   String   @db.Uuid
+  userId    String   @db.Uuid
+  memberId  String   @db.Uuid
+  amount    Decimal  @db.Decimal(10, 2)
   createdAt DateTime @default(now())
 
   group  Group       @relation(fields: [groupId], references: [id], onDelete: Cascade)

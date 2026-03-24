@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { useNavigate, Link, Navigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import { Eye, EyeOff, Mail } from "lucide-react";
 import { useSession } from "../../context/SessionContext";
 import supabase from "../../supabase";
@@ -19,15 +19,6 @@ const Login = () => {
 
   const { session } = useSession();
   if (session) return <Navigate to="/" />;
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    navigate("/");
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormValues({ ...formValues, [e.target.name]: e.target.value });
-  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -74,7 +65,6 @@ const Login = () => {
               name="email"
               placeholder="megabonk@gmail.com"
               value={email}
-              type="email"
               onChange={(e) => {setEmail(e.target.value)}}
               className="w-full bg-secondary border-0 rounded-xl py-3.5 pl-11 pr-4 text-foreground placeholder:text-muted-foreground text-sm focus:ring-2 focus:ring-primary outline-none"
             />
@@ -87,7 +77,6 @@ const Login = () => {
             <input
               type={showPassword ? "text" : "password"}
               name="password"
-              type="password"
               placeholder="Enter password"
               value={password}
               onChange={(e) => {setPassword(e.target.value)}}

@@ -1,11 +1,21 @@
 import { motion } from "framer-motion";
-import { ChevronRight, Globe, Bell, Shield, HelpCircle, LogOut, Moon, Camera } from "lucide-react";
-import { useState, useEffect } from "react";
+import {
+  ChevronRight,
+  Globe,
+  Bell,
+  Shield,
+  HelpCircle,
+  LogOut,
+  Moon,
+  Camera,
+} from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import { NavigateFunction, useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import BottomNav from "@/components/BottomNav";
-
+import { useCurrentUser } from "@/context/SessionContext";
+import { useEditUser } from "@/hooks/useEditUser";
 import supabase from "@/supabase";
 
 const menuItems = [
@@ -17,13 +27,16 @@ const menuItems = [
 ];
 
 async function handleLogout(navigate: NavigateFunction) {
-    await supabase.auth.signOut();
-
-    navigate('/auth/login');
+  await supabase.auth.signOut();
+  navigate("/auth/login");
 }
 
 const Profile = () => {
   const navigate = useNavigate();
+  const { user } = useCurrentUser();
+  const { mutate: editUser, isPending: isUploadingAvatar } = useEditUser();
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
   const [toggles, setToggles] = useState<Record<string, boolean>>(() => ({
     Notifications: true,
     "Dark Mode": document.documentElement.classList.contains("dark"),
@@ -39,23 +52,61 @@ const Profile = () => {
     }
   }, [toggles["Dark Mode"]]);
 
+  // Initials fallback from name or username
+  const initials = (user?.name ?? user?.username ?? "?")
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    editUser({ avatarFile: file });
+  };
+
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
       <div className="gradient-primary px-5 pt-12 pb-10 rounded-b-[2rem] flex flex-col items-center">
         <div className="relative mb-3">
           <Avatar className="w-20 h-20 border-4 border-primary-foreground/20">
-            <AvatarImage src="" />
+            <AvatarImage src={user?.avatarUrl ?? ""} />
             <AvatarFallback className="bg-primary-foreground/20 text-primary-foreground text-2xl font-bold">
-              FA
+              {initials}
             </AvatarFallback>
           </Avatar>
-          <button className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-primary-foreground flex items-center justify-center shadow-primary">
-            <Camera className="w-3.5 h-3.5 text-primary" />
+
+          {/* Camera button */}
+          <button
+            onClick={() => avatarInputRef.current?.click()}
+            disabled={isUploadingAvatar}
+            className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-primary-foreground flex items-center justify-center shadow-primary disabled:opacity-50"
+          >
+            {isUploadingAvatar ? (
+              <span className="w-3 h-3 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+            ) : (
+              <Camera className="w-3.5 h-3.5 text-primary" />
+            )}
           </button>
+
+          {/* Hidden file input */}
+          <input
+            ref={avatarInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleAvatarChange}
+          />
         </div>
-        <h1 className="text-primary-foreground text-lg font-bold">Farrukh Abdullaev</h1>
-        <p className="text-primary-foreground/60 text-sm">+992 90 123 4567</p>
+
+        <h1 className="text-primary-foreground text-lg font-bold">
+          {user?.name ?? user?.username ?? "—"}
+        </h1>
+        <p className="text-primary-foreground/60 text-sm">
+          {user?.phone ?? user?.email ?? "—"}
+        </p>
       </div>
 
       {/* Account Info */}
@@ -67,14 +118,18 @@ const Profile = () => {
         >
           <div className="flex justify-between items-center">
             <div>
-              <p className="text-muted-foreground text-xs">Account Number</p>
-              <p className="text-foreground font-semibold text-sm mt-0.5">9201 2345 6789</p>
+              <p className="text-muted-foreground text-xs">Username</p>
+              <p className="text-foreground font-semibold text-sm mt-0.5">
+                @{user?.username ?? "—"}
+              </p>
             </div>
             <div className="text-right">
-              <p className="text-muted-foreground text-xs">Status</p>
-              <span className="inline-block mt-0.5 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
-                Active
-              </span>
+              <p className="text-muted-foreground text-xs">Wallet Balance</p>
+              <p className="text-foreground font-semibold text-sm mt-0.5">
+                {user?.wallet
+                  ? `${Number(user.wallet.balance).toLocaleString()} ${user.wallet.currency}`
+                  : "—"}
+              </p>
             </div>
           </div>
         </motion.div>
@@ -91,12 +146,14 @@ const Profile = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.04 }}
               onClick={() => !item.toggle && item.path && navigate(item.path)}
-              className="w-full bg-card rounded-xl p-4 shadow-card flex items-center gap-3"
+              className="w-full bg-card rounded-xl p-4 shadow-card flex items-center gap-3 cursor-pointer"
             >
               <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
                 <Icon className="w-4.5 h-4.5 text-primary" />
               </div>
-              <span className="text-foreground text-sm font-medium flex-1 text-left">{item.label}</span>
+              <span className="text-foreground text-sm font-medium flex-1 text-left">
+                {item.label}
+              </span>
               {item.toggle ? (
                 <Switch
                   checked={toggles[item.label] ?? false}
@@ -107,7 +164,9 @@ const Profile = () => {
               ) : (
                 <div className="flex items-center gap-1">
                   {item.value && (
-                    <span className="text-muted-foreground text-xs">{item.value}</span>
+                    <span className="text-muted-foreground text-xs">
+                      {item.value}
+                    </span>
                   )}
                   <ChevronRight className="w-4 h-4 text-muted-foreground" />
                 </div>
@@ -121,13 +180,15 @@ const Profile = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25 }}
-          onClick={() => {handleLogout(navigate)}}
+          onClick={() => handleLogout(navigate)}
           className="w-full bg-card rounded-xl p-4 shadow-card flex items-center gap-3 mt-4"
         >
           <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center">
             <LogOut className="w-4.5 h-4.5 text-destructive" />
           </div>
-          <span className="text-destructive text-sm font-medium flex-1 text-left">Log Out</span>
+          <span className="text-destructive text-sm font-medium flex-1 text-left">
+            Log Out
+          </span>
         </motion.button>
       </div>
 
@@ -137,4 +198,3 @@ const Profile = () => {
 };
 
 export default Profile;
-
