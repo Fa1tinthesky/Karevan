@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
-import { Eye, EyeOff, Mail, User } from "lucide-react";
+import { Eye, EyeOff, Mail } from "lucide-react";
 import { useSession } from "../../context/SessionContext";
 import supabase from "../../supabase";
 
@@ -32,6 +32,7 @@ const Signup = () => {
       alert(error.message);
     }
     setStatus("");
+    return <Navigate to="/" />;
   };
 
   return (

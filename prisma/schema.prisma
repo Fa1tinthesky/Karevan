@@ -9,21 +9,25 @@ datasource db {
   extensions = [uuid_ossp(map: "uuid-ossp")]
 }
 
+// ─────────────────────────────────────────────
+// USER
+// ─────────────────────────────────────────────
 model User {
-  id                String              @id @db.Uuid
-  username          String              @unique
-  email             String              @unique
-  phone             String?             @unique
-  name              String?
-  avatarUrl         String?
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @default(now()) @updatedAt
-  Group             Group[]
-  GroupContribution GroupContribution[]
-  GroupMember       GroupMember[]
-  messages          Message[]
-  notifications     Notification[]
-  wallet            Wallet?
+  id        String   @id @db.Uuid
+  username  String   @unique
+  email     String   @unique
+  phone     String?  @unique
+  name      String?
+  avatarUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  wallet        Wallet?
+  groupsCreated Group[]             @relation("GroupCreator")
+  memberships   GroupMember[]
+  contributions GroupContribution[]
+  messages      Message[]
+  notifications Notification[]
 
   @@index([email])
   @@index([username])
@@ -57,39 +61,187 @@ model WalletTransaction {
   wallet        Wallet          @relation(fields: [walletId], references: [id], onDelete: Cascade)
 
   @@index([walletId])
+  @@index([groupId])
   @@index([type])
   @@index([createdAt])
-  @@index([groupId])
 }
 
 model Message {
   id        String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+// ─────────────────────────────────────────────
+// GROUP
+// One table for both bills and goals.
+// type field controls all behavior.
+//
+// BILL — money goes OUT to a destination
+//   uses: category, splitType, destination,
+//         deadline
+//   ignores: frequency, contributionAmount,
+//            nextContributionDate, visibility
+//
+// GOAL — money comes IN toward a target
+//   uses: frequency, contributionAmount,
+//         nextContributionDate, visibility
+//   ignores: category, splitType, destination
+//
+// currentAmount — for BILL: how much committed
+//                 for GOAL: how much saved so far
+// ─────────────────────────────────────────────
+model Group {
+  id            String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  createdBy     String      @db.Uuid
+  type          GroupType // BILL or GOAL
+  title         String
+  description   String?
+  status        GroupStatus @default(ACTIVE)
+  targetAmount  Decimal     @db.Decimal(10, 2)
+  currentAmount Decimal     @default(0.00) @db.Decimal(10, 2)
+  completedAt   DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @default(now()) @updatedAt
+
+  // BILL only — null for goals
+  category    GroupCategory? // RENT, ELECTRICITY, WATER etc
+  splitType   SplitType? // EQUAL or CUSTOM
+  destination String? // landlord phone, bill reference
+  deadline    DateTime? // optional hard cutoff
+
+  // GOAL only — null for bills
+  frequency            GoalFrequency? // DAILY, WEEKLY, MONTHLY
+  contributionAmount   Decimal?       @db.Decimal(10, 2)
+  nextContributionDate DateTime?
+  visibility           GoalVisibility @default(PRIVATE)
+
+  creator       User                @relation("GroupCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  members       GroupMember[]
+  contributions GroupContribution[]
+  messages      Message[]
+  notifications Notification[]
+
+  @@index([createdBy])
+  @@index([type])
+  @@index([status])
+  @@index([deadline])
+  @@index([visibility])
+}
+
+// ─────────────────────────────────────────────
+// GROUP MEMBER
+// One row per person per group.
+//
+// BILL fields:
+//   shareAmount      — their cut of the bill
+//   status           — INVITED → COMMITTED → PAID
+//   lockedAt         — when money was soft locked
+//   paidAt           — when payment fired
+//
+// GOAL fields:
+//   totalContributed — running sum of all their
+//                      contributions to this goal
+//
+// isAdmin — can edit/cancel the group
+// ─────────────────────────────────────────────
+model GroupMember {
+  id      String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  groupId String @db.Uuid
+  userId  String @db.Uuid
+
+  isAdmin   Boolean  @default(false)
+  joinedAt  DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  // BILL only — null for goals
+  shareAmount Decimal?     @db.Decimal(10, 2)
+  status      MemberStatus @default(INVITED)
+  lockedAt    DateTime?
+  paidAt      DateTime?
+
+  // GOAL only — null for bills
+  totalContributed Decimal @default(0.00) @db.Decimal(10, 2)
+
+  group         Group               @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contributions GroupContribution[]
+
+  @@unique([groupId, userId])
+  @@index([groupId])
+  @@index([userId])
+  @@index([status])
+}
+
+// ─────────────────────────────────────────────
+// GROUP CONTRIBUTION
+// Every individual payment or contribution.
+//
+// BILL — one row per member when they pay.
+//        records their shareAmount payment.
+//
+// GOAL — one row per contribution cycle.
+//        a person may have many rows here
+//        over time as they contribute on schedule.
+//
+// This is the full history for both types.
+// ─────────────────────────────────────────────
+model GroupContribution {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  groupId   String   @db.Uuid
+  userId    String   @db.Uuid
+  memberId  String   @db.Uuid
+  amount    Decimal  @db.Decimal(10, 2)
+  createdAt DateTime @default(now())
+
+  group  Group       @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  member GroupMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([groupId])
+  @@index([userId])
+  @@index([memberId])
+  @@index([createdAt])
+}
+
+// ─────────────────────────────────────────────
+// MESSAGE
+// One table for all group chats.
+// senderId null = system generated message.
+// Supabase Realtime subscribes per groupId.
+// ─────────────────────────────────────────────
+model Message {
+  id        String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  groupId   String      @db.Uuid
   senderId  String?     @db.Uuid
   content   String
   type      MessageType @default(USER)
   createdAt DateTime    @default(now())
-  groupId   String      @db.Uuid
-  Group     Group       @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  sender    User?       @relation(fields: [senderId], references: [id])
+  group  Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  sender User? @relation(fields: [senderId], references: [id], onDelete: SetNull)
 
   @@index([senderId])
   @@index([createdAt])
   @@index([groupId])
 }
 
+// ─────────────────────────────────────────────
+// NOTIFICATION
+// In-app only for hackathon.
+// Every event creates one row per affected user.
+// Bell badge = count where userId=me AND read=false
+// ─────────────────────────────────────────────
 model Notification {
   id        String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   userId    String           @db.Uuid
+  groupId   String?          @db.Uuid
   type      NotificationType
   title     String
   body      String
   read      Boolean          @default(false)
   createdAt DateTime         @default(now())
-  groupId   String?          @db.Uuid
-  Group     Group?           @relation(fields: [groupId], references: [id])
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group Group? @relation(fields: [groupId], references: [id])
 
   @@index([userId])
+  @@index([groupId])
   @@index([read])
   @@index([createdAt])
   @@index([groupId])
@@ -167,15 +319,6 @@ model GroupMember {
   @@index([userId])
 }
 
-enum TransactionType {
-  TOPUP
-  LOCK
-  UNLOCK
-  PAYMENT
-  CONTRIBUTION
-  REWARD
-}
-
 enum SplitType {
   EQUAL
   CUSTOM
@@ -191,6 +334,15 @@ enum GoalVisibility {
   PRIVATE
   COLLABORATIVE
   PUBLIC
+}
+
+enum TransactionType {
+  TOPUP
+  LOCK
+  UNLOCK
+  PAYMENT
+  CONTRIBUTION
+  REWARD
 }
 
 enum MessageType {
