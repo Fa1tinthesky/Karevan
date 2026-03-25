@@ -1,5 +1,7 @@
 import { cn } from '@/lib/utils'
-import type { ChatMessage } from '@/hooks/chat/use-realtime-chat'
+import type { Database } from '@/types/database'
+
+type ChatMessage = Database['public']['Tables']['Message']['Row'];
 
 interface ChatMessageItemProps {
   message: ChatMessage
@@ -21,7 +23,7 @@ export const ChatMessageItem = ({ message, isOwnMessage, showHeader }: ChatMessa
               'justify-end flex-row-reverse': isOwnMessage,
             })}
           >
-            <span className={'font-medium'}>{message.user.name}</span>
+            <span className={'font-medium'}>{message.senderId}</span>
             <span className="text-foreground/50 text-xs">
               {new Date(message.createdAt).toLocaleTimeString('en-US', {
                 hour: '2-digit',

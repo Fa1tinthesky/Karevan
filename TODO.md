@@ -5,11 +5,9 @@
 - Adding collaborators to db...
 - Recalculate amount of contributed to the group and change it in the db...
 
-- Log out button so I can check that everything works... !!!
-
-- Add Notification Logic(Read, Accept, Reject).
+- Add Notification Logic(Read, Accept, Reject). (almost куль, repeating user problem and inviting ADMIN...)
 
 
-- Add goals to database with all the params (can't do this one with out creating goal collaborators...
+- Add goals to database with all the params (can't do this one with out creating goal collaborators...(куль)
 
 - Log out button so I can check that everything works... (куль)

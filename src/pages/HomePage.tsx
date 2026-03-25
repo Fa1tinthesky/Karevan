@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCurrentUser } from "@/context/SessionContext";
 import BottomNav from "@/components/BottomNav";
+import ChatEmbedded  from "@/components/ChatEmbedded";
 import { useRecentTransactions } from "@/hooks/useRecentTransactions";
 import { useUnreadCount } from "@/hooks/useNotifications";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -259,7 +260,6 @@ const HomePage = () => {
           )}
         </div>
       </div>
-
       <BottomNav />
     </div>
   );

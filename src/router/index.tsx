@@ -12,7 +12,7 @@ import Wallet from "@/pages/Wallet.tsx";
 import Signup from "@/pages/auth/Signup.tsx";
 import Login from "@/pages/auth/Login.tsx";
 import Profile from "@/pages/Profile.tsx";
-import NotificationsPage from "@/pages/NotificatinosPage.tsx";
+import NotificationsPage from "@/pages/NotificationsPage.tsx";
 import GroupDetailPage from "@/pages/GroupDetailsPage.tsx";
 
 const router = createBrowserRouter([

@@ -203,12 +203,14 @@ const GroupDetailPage = () => {
       {/* Header */}
       <div className="gradient-primary px-5 pt-12 pb-8 rounded-b-[2rem]">
         <div className="flex items-center justify-between mb-5">
-          <button
+          <motion.button
+            whileTap={{ scale: 0.96 }}
+            style={{cursor: "pointer"}}
             onClick={() => navigate(-1)}
             className="w-9 h-9 rounded-xl bg-primary-foreground/20 flex items-center justify-center"
           >
             <ArrowLeft className="w-5 h-5 text-primary-foreground" />
-          </button>
+          </motion.button>
           <span
             className={`text-xs font-semibold px-3 py-1 rounded-full ${statusConfig!.bg} ${statusConfig!.text}`}
           >

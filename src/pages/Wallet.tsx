@@ -68,12 +68,14 @@ const Wallet = () => {
       <div className="gradient-primary px-5 pt-12 pb-6 rounded-b-[2rem]">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-primary-foreground text-xl font-bold">Wallet</h1>
-          <button
+          <motion.button 
+            whileTap={{ scale: 0.96 }}
             onClick={() => setShowCreate(true)}
+            style={{cursor: "pointer"}}
             className="w-9 h-9 rounded-xl bg-primary-foreground/20 flex items-center justify-center"
           >
             <Plus className="w-5 h-5 text-primary-foreground" />
-          </button>
+          </motion.button>
         </div>
 
         {/* Balance card */}
