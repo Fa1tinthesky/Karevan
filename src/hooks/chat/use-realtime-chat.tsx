@@ -1,38 +1,64 @@
-'use client'
-
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import supabase from '@/supabase/index'
+import type { Database } from '@/types/database'
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
+type ChatMessage = Database['public']['Tables']['Message']['Row'];
+type SendMessagePayload = Database['public']['Tables']['Message']['Insert'];
 
 interface UseRealtimeChatProps {
-  roomName: string
+  groupId: string
+  userId: string
   username: string
 }
 
-export interface ChatMessage {
-  id: string
-  content: string
-  user: {
-    name: string
-  }
-  createdAt: string
-}
+export function useRealtimeChat({ groupId, userId, username }: UseRealtimeChatProps) {
+    const [isConnected, setIsConnected] = useState(false)
+    const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+    const queryClient = useQueryClient();
+    const queryKey = ["Message", groupId];
 
-const EVENT_MESSAGE_TYPE = 'message'
-
-export function useRealtimeChat({ roomName, username }: UseRealtimeChatProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [channel, setChannel] = useState<ReturnType<typeof supabase.channel> | null>(null)
-  const [isConnected, setIsConnected] = useState(false)
+  /* const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [channel, setChannel] = useState<ReturnType<typeof supabase.channel> | null>(null) */
 
   useEffect(() => {
-    const newChannel = supabase.channel(roomName)
+      const groupName = `group-${groupId}`;
+    const channel = supabase.channel(groupName)
+      .on(
+          'postgres_changes', 
+        { 
+            event: "INSERT",
+            schema: "public",
+            table: "Message",
+            filter: `groupId=eq.${groupId}`
+        }, 
+        async (payload) => {
+            // setMessages((current) => [...current, payload.payload as ChatMessage])
+            const { data } = await supabase
+                .from("Message")
+                .select(`
+                        id, 
+                        content,
+                        senderId, 
+                        groupId,
+                        type, 
+                        createdAt,
+                        sender:User(
+                            id, 
+                            username,
+                            name,
+                            avatarUrl
+                        )
+                `)
+                .eq("id", payload.new.id)
+                .single()
 
-    newChannel
-      .on('broadcast', { event: EVENT_MESSAGE_TYPE }, (payload) => {
-        setMessages((current) => [...current, payload.payload as ChatMessage])
+            if (data) {
+                queryClient.setQueryData<ChatMessage[]>(queryKey, (old) =>
+                    old ? [...old, data as unknown as ChatMessage] : [data as unknown as ChatMessage])
+            }
       })
-      .subscribe(async (status) => {
+      .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
           setIsConnected(true)
         } else {
@@ -40,26 +66,29 @@ export function useRealtimeChat({ roomName, username }: UseRealtimeChatProps) {
         }
       })
 
-    setChannel(newChannel)
+      channelRef.current = channel;
 
-    return () => {
-      supabase.removeChannel(newChannel)
-    }
-  }, [roomName, username, supabase])
+        return () => {
+          supabase.removeChannel(channel)
+        }
+  }, [groupId])
 
   const sendMessage = useCallback(
     async (content: string) => {
-      if (!channel || !isConnected) return
+      if (!content.trim()) return
 
-      const message: ChatMessage = {
-        id: crypto.randomUUID(),
-        content,
-        user: {
-          name: username,
-        },
-        createdAt: new Date().toISOString(),
-      }
+          const payload: SendMessagePayload = {
+              content: content.trim(),
+              senderId: userId,
+              groupId: groupId,
+          }
 
+          const { error } = await supabase
+            .from("Message")
+            .insert({ ...payload, type: "USER" })
+
+          if (error) throw error
+/*
       // Update local state immediately for the sender
       setMessages((current) => [...current, message])
 
@@ -67,10 +96,10 @@ export function useRealtimeChat({ roomName, username }: UseRealtimeChatProps) {
         type: 'broadcast',
         event: EVENT_MESSAGE_TYPE,
         payload: message,
-      })
+      }) */
     },
-    [channel, isConnected, username]
+    [groupId, userId]
   )
 
-  return { messages, sendMessage, isConnected }
+  return { sendMessage, isConnected }
 }

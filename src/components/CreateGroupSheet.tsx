@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ChevronRight, ChevronLeft } from "lucide-react";
-import { useCreateGroup, CreateGroupPayload } from "@/hooks/useCreateGroup";
+import { useCreateGroup, type CreateGroupPayload } from "@/hooks/useCreateGroup";
 import { UserSearchInput } from "@/components/UserSearchInput";
-import { SearchedUser } from "../hooks/useSearchUsers";
+import { type SearchedUser } from "../hooks/useSearchUsers";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 type Props = {
