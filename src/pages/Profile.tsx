@@ -5,6 +5,7 @@ import { NavigateFunction, useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import BottomNav from "@/components/BottomNav";
+import { useCurrentUser } from "@/context/SessionContext";
 
 import supabase from "@/supabase";
 
@@ -23,11 +24,14 @@ async function handleLogout(navigate: NavigateFunction) {
 }
 
 const Profile = () => {
-  const navigate = useNavigate();
-  const [toggles, setToggles] = useState<Record<string, boolean>>(() => ({
-    Notifications: true,
-    "Dark Mode": document.documentElement.classList.contains("dark"),
-  }));
+    const { user, isLoading } = useCurrentUser();
+
+    const navigate = useNavigate();
+    const [toggles, setToggles] = useState<Record<string, boolean>>(() => ({
+        Notifications: true,
+        "Dark Mode": document.documentElement.classList.contains("dark"),
+    }));
+
 
   useEffect(() => {
     if (toggles["Dark Mode"]) {
@@ -38,6 +42,13 @@ const Profile = () => {
       localStorage.setItem("theme", "light");
     }
   }, [toggles["Dark Mode"]]);
+
+  // TODO: 
+  // Replace with some loading animation component
+  if (!user) { 
+      navigate('/auth/login');
+  }
+  if (isLoading) return <div>Loading...</div>
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -54,7 +65,7 @@ const Profile = () => {
             <Camera className="w-3.5 h-3.5 text-primary" />
           </button>
         </div>
-        <h1 className="text-primary-foreground text-lg font-bold">Farrukh Abdullaev</h1>
+        <h1 className="text-primary-foreground text-lg font-bold">{user?.username}</h1>
         <p className="text-primary-foreground/60 text-sm">+992 90 123 4567</p>
       </div>
 

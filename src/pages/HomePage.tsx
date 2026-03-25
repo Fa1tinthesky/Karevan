@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Eye, EyeOff, Send, Smartphone, Zap, Wifi, CreditCard, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useCurrentUser } from "@/context/SessionContext";
 import BottomNav from "@/components/BottomNav";
 
 const quickActions = [
@@ -21,6 +22,9 @@ const recentTransactions = [
 const HomePage = () => {
   const [showBalance, setShowBalance] = useState(true);
   const navigate = useNavigate();
+  const { user, isLoading } = useCurrentUser();
+
+  if (!user) { navigate("/auth/sign-in")}
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -29,7 +33,7 @@ const HomePage = () => {
         <div className="flex items-center justify-between mb-6">
           <div>
             <p className="text-primary-foreground/70 text-sm">Good afternoon,</p>
-            <h1 className="text-primary-foreground text-xl font-bold">Firdavs</h1>
+            <h1 className="text-primary-foreground text-xl font-bold">{user ? user.username : "Firdavs"}</h1>
           </div>
           <div className="w-10 h-10 rounded-full bg-primary-foreground/20 flex items-center justify-center">
             <span className="text-primary-foreground font-semibold text-sm">F</span>
