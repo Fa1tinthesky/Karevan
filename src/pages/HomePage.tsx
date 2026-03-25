@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCurrentUser } from "@/context/SessionContext";
 import BottomNav from "@/components/BottomNav";
+import ChatEmbedded  from "@/components/ChatEmbedded";
 
 const quickActions = [
   { icon: Send, label: "Transfer", color: "bg-primary/10 text-primary" },
@@ -149,6 +150,7 @@ const HomePage = () => {
         </div>
       </div>
 
+     <ChatEmbedded />
       <BottomNav />
     </div>
   );
