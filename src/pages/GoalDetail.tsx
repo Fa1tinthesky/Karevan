@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Plus, UserPlus, Send, MoreVertical } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useState } from "react";
+import ChatEmbedded from "../components/ChatEmbedded.tsx";
 
 const goalsData: Record<string, {
   name: string; avatar: string; target: number; current: number;
@@ -151,56 +152,36 @@ const GoalDetail = () => {
       </div>
 
       {/* Chat Messages */}
-      <div className="flex-1 px-5 mt-4 space-y-3 overflow-y-auto">
-        <h3 className="text-foreground text-sm font-semibold">Group Chat</h3>
-        {goal.messages.map((msg, i) => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05 }}
-            className={`flex ${msg.isMe ? "justify-end" : "justify-start"}`}
-          >
-            <div
-              className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
-                msg.isMe
-                  ? "gradient-primary text-primary-foreground rounded-br-md"
-                  : "bg-card shadow-card text-foreground rounded-bl-md"
-              }`}
-            >
-              {!msg.isMe && (
-                <p className="text-primary text-[10px] font-semibold mb-0.5">{msg.sender}</p>
-              )}
-              <p className="text-sm">{msg.text}</p>
-              <p className={`text-[10px] mt-1 ${msg.isMe ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
-                {msg.time}
-              </p>
-            </div>
-          </motion.div>
-        ))}
-      </div>
+      {/* <div className="flex-1 px-5 mt-4 space-y-3 overflow-y-auto"> */}
+      {/*   <h3 className="text-foreground text-sm font-semibold">Group Chat</h3> */}
+      {/*   {goal.messages.map((msg, i) => ( */}
+      {/*     <motion.div */}
+      {/*       key={i} */}
+      {/*       initial={{ opacity: 0, y: 10 }} */}
+      {/*       animate={{ opacity: 1, y: 0 }} */}
+      {/*       transition={{ delay: i * 0.05 }} */}
+      {/*       className={`flex ${msg.isMe ? "justify-end" : "justify-start"}`} */}
+      {/*     > */}
+      {/*       <div */}
+      {/*         className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${ */}
+      {/*           msg.isMe */}
+      {/*             ? "gradient-primary text-primary-foreground rounded-br-md" */}
+      {/*             : "bg-card shadow-card text-foreground rounded-bl-md" */}
+      {/*         }`} */}
+      {/*       > */}
+      {/*         {!msg.isMe && ( */}
+      {/*           <p className="text-primary text-[10px] font-semibold mb-0.5">{msg.sender}</p> */}
+      {/*         )} */}
+      {/*         <p className="text-sm">{msg.text}</p> */}
+      {/*         <p className={`text-[10px] mt-1 ${msg.isMe ? "text-primary-foreground/60" : "text-muted-foreground"}`}> */}
+      {/*           {msg.time} */}
+      {/*         </p> */}
+      {/*       </div> */}
+      {/*     </motion.div> */}
+      {/*   ))} */}
+      {/* </div> */}
 
-      {/* Message Input */}
-      <div className="px-5 py-4 bg-card border-t border-border">
-        <div className="flex items-center gap-2">
-          <button className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center flex-shrink-0">
-            <Plus className="w-5 h-5 text-primary" />
-          </button>
-          <input
-            type="text"
-            placeholder="Type a message..."
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            className="flex-1 bg-secondary rounded-xl py-2.5 px-4 text-foreground placeholder:text-muted-foreground text-sm outline-none focus:ring-2 focus:ring-primary"
-          />
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center flex-shrink-0 shadow-primary"
-          >
-            <Send className="w-4 h-4 text-primary-foreground" />
-          </motion.button>
-        </div>
-      </div>
+      <ChatEmbedded />
     </div>
   );
 };

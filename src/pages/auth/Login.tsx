@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { useNavigate, Link, Navigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import { Eye, EyeOff, Mail } from "lucide-react";
 import { useSession } from "../../context/SessionContext";
 import supabase from "../../supabase";
@@ -19,15 +19,6 @@ const Login = () => {
 
   const { session } = useSession();
   if (session) return <Navigate to="/" />;
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    navigate("/");
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormValues({ ...formValues, [e.target.name]: e.target.value });
-  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -66,7 +57,7 @@ const Login = () => {
         className="flex-1 px-6 pt-8 space-y-5"
       >
         <div>
-          <label className="text-foreground text-sm font-medium mb-2 block">Phone Number</label>
+          <label className="text-foreground text-sm font-medium mb-2 block">Email</label>
           <div className="relative">
             <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
@@ -74,7 +65,6 @@ const Login = () => {
               name="email"
               placeholder="megabonk@gmail.com"
               value={email}
-              type="email"
               onChange={(e) => {setEmail(e.target.value)}}
               className="w-full bg-secondary border-0 rounded-xl py-3.5 pl-11 pr-4 text-foreground placeholder:text-muted-foreground text-sm focus:ring-2 focus:ring-primary outline-none"
             />
@@ -87,7 +77,6 @@ const Login = () => {
             <input
               type={showPassword ? "text" : "password"}
               name="password"
-              type="password"
               placeholder="Enter password"
               value={password}
               onChange={(e) => {setPassword(e.target.value)}}
@@ -120,7 +109,7 @@ const Login = () => {
 
         <p className="text-center text-muted-foreground text-sm">
           Don't have an account?{" "}
-          <button type="button" onClick={() => navigate("/signup")} className="text-primary font-semibold">
+          <button type="button" onClick={() => navigate("/auth/sign-up")} className="text-primary font-semibold">
             Sign Up
           </button>
         </p>

@@ -11,6 +11,7 @@ import Wallet from "@/pages/Wallet.tsx";
 import GoalDetail from "@/pages/GoalDetail.tsx";
 import Signup from "@/pages/auth/Signup.tsx";
 import Login from "@/pages/auth/Login.tsx";
+import Profile from "@/pages/Profile.tsx";
 
 
 const router = createBrowserRouter([
@@ -39,6 +40,10 @@ const router = createBrowserRouter([
               {
                   path: "/goal/:id",
                   element: <GoalDetail />
+              },
+              {
+                  path: "/profile",
+                  element: <Profile />
               }
             ],
           },
