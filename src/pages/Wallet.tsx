@@ -1,12 +1,57 @@
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
+import TransferModal from "@/components/TransferModal";
+import CreateGoalModal from "@/components/CreateGoalModal";
+
+const groupGoals = [
+  {
+    id: "1",
+    name: "Trip to Istanbul 🇹🇷",
+    members: ["F", "A", "S", "M"],
+    target: 15000,
+    current: 8750,
+    avatar: "✈️",
+  },
+  {
+    id: "2",
+    name: "New iPhone 📱",
+    members: ["F", "D"],
+    target: 8000,
+    current: 3200,
+    avatar: "📱",
+  },
+  {
+    id: "3",
+    name: "Wedding Fund 💍",
+    members: ["F", "A", "S", "M", "D", "K"],
+    target: 50000,
+    current: 22000,
+    avatar: "💍",
+  },
+  {
+    id: "4",
+    name: "Gaming PC 🎮",
+    members: ["F", "S"],
+    target: 6000,
+    current: 5400,
+    avatar: "🎮",
+  },
+];
+
 import { Plus, Users, Target, ChevronRight, Receipt } from "lucide-react";
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
 import { CreateGroupSheet } from "@/components/CreateGroupSheet";
 import { useGroups } from "@/hooks/useGroups";
 import { useCurrentUser } from "@/context/SessionContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+function chooseRandomAvatar() {
+    const groupAvatars = ["🇹🇷", "📱", "💍", "🎮"];
+    const randomAvatar = groupAvatars[Math.floor(Math.random() * groupAvatars.length)];
+
+    return randomAvatar;
+}
 
 const Wallet = () => {
   const navigate = useNavigate();
@@ -52,6 +97,16 @@ const Wallet = () => {
 
       {/* Tabs */}
       <div className="px-5 mt-5">
+        {/* <div className="flex items-center justify-between mb-3"> */}
+        {/*   <h2 className="text-foreground font-semibold text-base flex items-center gap-2"> */}
+        {/*     <Users className="w-4 h-4 text-primary" /> */}
+        {/*     Group Savings */}
+        {/*   </h2> */}
+        {/*   <span className="text-muted-foreground text-xs">{groupGoals.length} groups</span> */} 
+        {/*   {groups?.length === 0 ?  */}
+        {/*       <span className="text-muted-foreground text-xs">No groups yet</span> : */}
+        {/*       <span className="text-muted-foreground text-xs">{groups?.length} groups</span> */}
+        {/*   } */}
         <div className="flex gap-2 bg-secondary rounded-xl p-1">
           {(["BILL", "GOAL"] as const).map((t) => (
             <button
@@ -220,6 +275,88 @@ const Wallet = () => {
         )}
       </div>
 
+      {/* Group Goals Network */}
+      {/* <div className="px-5 mt-5"> */}
+      {/*   <div className="flex items-center justify-between mb-3"> */}
+      {/*     <h2 className="text-foreground font-semibold text-base flex items-center gap-2"> */}
+      {/*       <Users className="w-4 h-4 text-primary" /> */}
+      {/*       Group Savings */}
+      {/*     </h2> */}
+      {/*     {groups?.length === 0 ?  */}
+      {/*         <span className="text-muted-foreground text-xs">No groups yet</span> : */}
+      {/*         <span className="text-muted-foreground text-xs">{groups?.length} groups</span> */}
+      {/*     } */}
+      {/*   </div> */}
+      {/**/}
+      {/*   <div className="space-y-3"> */}
+      {/*     {groups?.map((goal, i) => { */}
+      {/*       const progress = (goal.currentAmount / goal.targetAmount) * 100; */}
+      {/*       const groupInitials = members?.[goal.id] ?? []; */}
+      {/**/}
+      {/*       return ( */}
+      {/*         <motion.button */}
+      {/*           key={goal.id} */}
+      {/*           initial={{ opacity: 0, y: 20 }} */}
+      {/*           animate={{ opacity: 1, y: 0 }} */}
+      {/*           transition={{ delay: i * 0.05 }} */}
+      {/*           onClick={() => navigate(`/goal/${goal.id}`)} */}
+      {/*           className="w-full bg-card rounded-2xl p-4 shadow-card flex items-center gap-3 text-left" */}
+      {/*         > */}
+      {/*           <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center text-2xl"> */}
+      {/*             {chooseRandomAvatar()} */}
+      {/*           </div> */}
+      {/*           <div className="flex-1 min-w-0"> */}
+      {/*             <p className="text-foreground text-sm font-semibold truncate">{goal.title}</p> */}
+      {/*             <div className="flex items-center gap-1 mt-1"> */}
+      {/*               <div className="flex -space-x-1.5"> */}
+      {/*                 {groups && groupInitials && groupInitials.slice(0, 3).map((m, j) => ( */}
+      {/*                   <div */}
+      {/*                     key={j} */}
+      {/*                     className="w-5 h-5 rounded-full bg-primary/20 border-2 border-card flex items-center justify-center" */}
+      {/*                   > */}
+      {/*                     <span className="text-[8px] font-bold text-primary">{m}</span> */}
+      {/*                   </div> */}
+      {/*                 ))} */}
+      {/*                 {groupInitials.length > 3 && ( */}
+      {/*                   <div className="w-5 h-5 rounded-full bg-muted border-2 border-card flex items-center justify-center"> */}
+      {/*                     <span className="text-[8px] font-bold text-muted-foreground"> */}
+      {/*                        +{groupInitials.length - 3} */}
+      {/*                     </span> */}
+      {/*                   </div> */}
+      {/*                 )} */}
+      {/*               </div> */}
+      {/*               <span className="text-muted-foreground text-xs ml-1"> */}
+      {/*                 {members?.length} members */}
+      {/*               </span> */}
+      {/*             </div> */}
+      {/*             <div className="mt-2"> */}
+      {/*               <div className="flex justify-between text-xs mb-1"> */}
+      {/*                 <span className="text-muted-foreground"> */}
+      {/*                   {goal.currentAmount.toLocaleString()} TJS */}
+      {/*                 </span> */}
+      {/*                 <span className="text-foreground font-medium"> */}
+      {/*                   {goal.targetAmount.toLocaleString()} TJS */}
+      {/*                 </span> */}
+      {/*               </div> */}
+      {/*               <div className="h-1.5 bg-secondary rounded-full overflow-hidden"> */}
+      {/*                 <motion.div */}
+      {/*                   initial={{ width: 0 }} */}
+      {/*                   animate={{ width: `${progress}%` }} */}
+      {/*                   transition={{ delay: 0.3 + i * 0.1, duration: 0.6 }} */}
+      {/*                   className="h-full gradient-primary rounded-full" */}
+      {/*                 /> */}
+      {/*               </div> */}
+      {/*             </div> */}
+      {/*           </div> */}
+      {/*           <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" /> */}
+      {/*         </motion.button> */}
+      {/*       ); */}
+      {/*     })} */}
+      {/*   </div> */}
+      {/* </div> */}
+      {/**/}
+      {/* <TransferModal open={showTransfer} onClose={() => setShowTransfer(false)} /> */}
+      {/* <CreateGoalModal open={showCreateGoal} onClose={() => setShowCreateGoal(false)} /> */}
       <CreateGroupSheet
         open={showCreate}
         onClose={() => setShowCreate(false)}

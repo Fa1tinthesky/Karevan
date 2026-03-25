@@ -32,10 +32,11 @@ async function handleLogout(navigate: NavigateFunction) {
 }
 
 const Profile = () => {
-  const navigate = useNavigate();
-  const { user } = useCurrentUser();
-  const { mutate: editUser, isPending: isUploadingAvatar } = useEditUser();
-  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+    const navigate = useNavigate();
+    const { user, isLoading } = useCurrentUser();
+    const { mutate: editUser, isPending: isUploadingAvatar } = useEditUser();
+    const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const [toggles, setToggles] = useState<Record<string, boolean>>(() => ({
     Notifications: true,
@@ -51,6 +52,13 @@ const Profile = () => {
       localStorage.setItem("theme", "light");
     }
   }, [toggles["Dark Mode"]]);
+
+  // TODO: 
+  // Replace with some loading animation component
+  if (!user) { 
+      navigate('/auth/login');
+  }
+  if (isLoading) return <div>Loading...</div>
 
   // Initials fallback from name or username
   const initials = (user?.name ?? user?.username ?? "?")
@@ -100,7 +108,6 @@ const Profile = () => {
             onChange={handleAvatarChange}
           />
         </div>
-
         <h1 className="text-primary-foreground text-lg font-bold">
           {user?.name ?? user?.username ?? "—"}
         </h1>

@@ -57,7 +57,7 @@ const Login = () => {
         className="flex-1 px-6 pt-8 space-y-5"
       >
         <div>
-          <label className="text-foreground text-sm font-medium mb-2 block">Phone Number</label>
+          <label className="text-foreground text-sm font-medium mb-2 block">Email</label>
           <div className="relative">
             <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
