@@ -75,14 +75,15 @@ const SlideWelcome = ({
   </div>
 );
 
+// SlideAvatar onChange now receives a File
 const SlideAvatar = ({
-  avatarUrl,
+  avatarPreview,
   name,
   onChange,
 }: {
-  avatarUrl: string;
+  avatarPreview: string;
   name: string;
-  onChange: (url: string) => void;
+  onChange: (file: File, preview: string) => void; // both file and preview URL
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const initials = name?.slice(0, 2).toUpperCase() || "??";
@@ -101,12 +102,11 @@ const SlideAvatar = ({
         </p>
       </div>
 
-      {/* Avatar preview */}
       <button
         onClick={() => inputRef.current?.click()}
         className="relative w-28 h-28 rounded-full flex items-center justify-center text-3xl font-bold transition-transform hover:scale-105 active:scale-95"
         style={{
-          background: avatarUrl
+          background: avatarPreview
             ? "transparent"
             : `linear-gradient(135deg, ${theme.colors.primary}, ${theme.colors.primaryDark})`,
           border: `3px solid ${theme.colors.surfaceBorder}`,
@@ -114,9 +114,9 @@ const SlideAvatar = ({
           overflow: "hidden",
         }}
       >
-        {avatarUrl ? (
+        {avatarPreview ? (
           <img
-            src={avatarUrl}
+            src={avatarPreview}
             alt="avatar"
             className="w-full h-full object-cover"
           />
@@ -139,13 +139,13 @@ const SlideAvatar = ({
         onChange={(e) => {
           const file = e.target.files?.[0];
           if (!file) return;
-          const url = URL.createObjectURL(file);
-          onChange(url);
+          const preview = URL.createObjectURL(file); // local preview only
+          onChange(file, preview);
         }}
       />
 
       <AppButton variant="ghost" onClick={() => inputRef.current?.click()}>
-        {avatarUrl ? "Change photo" : "Upload photo"}
+        {avatarPreview ? "Change photo" : "Upload photo"}
       </AppButton>
     </div>
   );
@@ -205,10 +205,12 @@ const OnboardingPage = () => {
   const { mutate: editUser, isPending } = useEditUser();
 
   const [slide, setSlide] = useState(0);
+  // Change the form state — store the File, not the URL
   const [form, setForm] = useState({
     name: user?.name ?? "",
     phone: user?.phone ?? "",
-    avatarUrl: user?.avatarUrl ?? "",
+    avatarFile: null as File | null,
+    avatarPreview: user?.avatarUrl ?? "", // only for display
   });
   const [errors, setErrors] = useState({ name: "", phone: "" });
 
@@ -231,14 +233,18 @@ const OnboardingPage = () => {
     if (slide === 0 && !validateSlide0()) return;
     if (slide === 1) {
       // Save name + phone + avatar after slide 2
-      editUser(
-        {
-          name: form.name,
-          phone: form.phone,
-          avatarUrl: form.avatarUrl || undefined,
-        },
-        { onSuccess: () => setSlide(2) },
-      );
+      // In next() — slide 1 saves with the file
+      if (slide === 1) {
+        editUser(
+          {
+            name: form.name,
+            phone: form.phone,
+            avatarFile: form.avatarFile, // File object — hook uploads it
+          },
+          { onSuccess: () => setSlide(2) },
+        );
+        return;
+      }
       return;
     }
     if (slide === 2) {
@@ -303,9 +309,15 @@ const OnboardingPage = () => {
           )}
           {slide === 1 && (
             <SlideAvatar
-              avatarUrl={form.avatarUrl}
+              avatarPreview={form.avatarPreview}
               name={form.name}
-              onChange={(url) => setForm((p) => ({ ...p, avatarUrl: url }))}
+              onChange={(file, preview) =>
+                setForm((p) => ({
+                  ...p,
+                  avatarFile: file,
+                  avatarPreview: preview,
+                }))
+              }
             />
           )}
           {slide === 2 && <SlideFeatures name={form.name} />}

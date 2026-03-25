@@ -11,8 +11,6 @@ datasource db {
 
 // ─────────────────────────────────────────────
 // USER
-// Basic user. Phone is important — 
-// Tcell users are identified by phone number.
 // ─────────────────────────────────────────────
 model User {
   id        String   @id @db.Uuid
@@ -24,13 +22,12 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  wallet             Wallet?
-  challengesCreated  Challenge[]            @relation("ChallengeCreator")
-  participations     ChallengeParticipant[]
-  goalsCreated       Goal[]                 @relation("GoalCreator")
-  goalCollaborations GoalCollaborator[]
-  messages           Message[]
-  notifications      Notification[]
+  wallet        Wallet?
+  groupsCreated Group[]             @relation("GroupCreator")
+  memberships   GroupMember[]
+  contributions GroupContribution[]
+  messages      Message[]
+  notifications Notification[]
 
   @@index([email])
   @@index([username])
@@ -39,11 +36,10 @@ model User {
 
 // ─────────────────────────────────────────────
 // WALLET
-// One per user. All fake for now.
-// balance     — what the user can freely spend
-// lockedBalance — committed to active challenges,
-//                cannot be spent elsewhere
-// Together: balance + lockedBalance = total money
+// One per user. Fake balance for hackathon.
+// balance      — freely spendable
+// lockedBalance — committed to active bills,
+//                 cannot be spent elsewhere
 // ─────────────────────────────────────────────
 model Wallet {
   id            String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
@@ -62,13 +58,8 @@ model Wallet {
 
 // ─────────────────────────────────────────────
 // WALLET TRANSACTION
-// Every money movement ever. Never delete rows.
-// type         — what kind of movement happened
-// amount       — how much moved
-// balanceBefore/After — snapshot for audit trail
-// referenceId  — the challenge or goal that
-//                triggered this transaction
-// referenceType — "CHALLENGE" or "GOAL"
+// Permanent ledger. Never delete rows.
+// Every money movement gets one row here.
 // ─────────────────────────────────────────────
 model WalletTransaction {
   id            String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
@@ -78,207 +69,192 @@ model WalletTransaction {
   balanceBefore Decimal         @db.Decimal(10, 2)
   balanceAfter  Decimal         @db.Decimal(10, 2)
   description   String?
-  referenceId   String?         @db.Uuid
-  referenceType String? // "CHALLENGE" or "GOAL"
+  groupId       String?         @db.Uuid // which group triggered this
   createdAt     DateTime        @default(now())
 
   wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
 
   @@index([walletId])
-  @@index([referenceId])
+  @@index([groupId])
   @@index([type])
   @@index([createdAt])
 }
 
 // ─────────────────────────────────────────────
-// CHALLENGE (Group Bill)
-// The shared bill object.
-// totalAmount   — the full bill amount
-// splitType     — EQUAL splits evenly between
-//                 all participants, CUSTOM means
-//                 each participant has their own
-//                 shareAmount set manually
-// destination   — where the money goes when paid
-//                 (landlord phone, bill reference)
-// deadline      — optional. if null, app sends
-//                 reminders after inactivity
-// status        — lifecycle of the bill
+// GROUP
+// One table for both bills and goals.
+// type field controls all behavior.
+//
+// BILL — money goes OUT to a destination
+//   uses: category, splitType, destination,
+//         deadline
+//   ignores: frequency, contributionAmount,
+//            nextContributionDate, visibility
+//
+// GOAL — money comes IN toward a target
+//   uses: frequency, contributionAmount,
+//         nextContributionDate, visibility
+//   ignores: category, splitType, destination
+//
+// currentAmount — for BILL: how much committed
+//                 for GOAL: how much saved so far
 // ─────────────────────────────────────────────
-model Challenge {
-  id          String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  createdBy   String            @db.Uuid
-  title       String
-  description String?
-  category    ChallengeCategory // RENT, ELECTRICITY, WATER, INTERNET, OTHER
-  totalAmount Decimal           @db.Decimal(10, 2)
-  splitType   SplitType         @default(EQUAL)
-  destination String? // Who gets paid at the end
-  deadline    DateTime? // Optional
-  status      ChallengeStatus   @default(ACTIVE)
-  completedAt DateTime?
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @default(now()) @updatedAt
+model Group {
+  id            String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  createdBy     String      @db.Uuid
+  type          GroupType // BILL or GOAL
+  title         String
+  description   String?
+  status        GroupStatus @default(ACTIVE)
+  targetAmount  Decimal     @db.Decimal(10, 2)
+  currentAmount Decimal     @default(0.00) @db.Decimal(10, 2)
+  completedAt   DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @default(now()) @updatedAt
 
-  creator       User                   @relation("ChallengeCreator", fields: [createdBy], references: [id], onDelete: Cascade)
-  participants  ChallengeParticipant[]
-  messages      Message[]              @relation("ChallengeMessages")
-  notifications Notification[]
+  // BILL only — null for goals
+  category    GroupCategory? // RENT, ELECTRICITY, WATER etc
+  splitType   SplitType? // EQUAL or CUSTOM
+  destination String? // landlord phone, bill reference
+  deadline    DateTime? // optional hard cutoff
 
-  @@index([createdBy])
-  @@index([status])
-  @@index([category])
-  @@index([deadline])
-}
-
-// ─────────────────────────────────────────────
-// CHALLENGE PARTICIPANT
-// One row per person per challenge.
-// shareAmount  — their specific cut of the bill
-// status       — their personal progress:
-//   INVITED    → added, hasn't responded
-//   COMMITTED  → joined, money soft locked
-//   PAID       → payment fired successfully
-//   DECLINED   → they said no
-// isAdmin      — can edit/cancel the challenge
-// ─────────────────────────────────────────────
-model ChallengeParticipant {
-  id          String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  challengeId String            @db.Uuid
-  userId      String            @db.Uuid
-  shareAmount Decimal           @db.Decimal(10, 2)
-  status      ParticipantStatus @default(INVITED)
-  isAdmin     Boolean           @default(false)
-  lockedAt    DateTime? // When soft lock was applied
-  paidAt      DateTime? // When payment fired
-  joinedAt    DateTime          @default(now())
-  updatedAt   DateTime          @default(now()) @updatedAt
-
-  challenge Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([challengeId, userId])
-  @@index([challengeId])
-  @@index([userId])
-  @@index([status])
-}
-
-// ─────────────────────────────────────────────
-// GOAL (Savings)
-// Different from a challenge — money goes IN
-// not OUT. People save toward a target.
-// targetAmount      — the finish line
-// currentAmount     — how much saved so far
-// contributionAmount — how much per cycle
-// frequency         — how often contributions happen
-// nextContributionDate — when next one is due
-// visibility        — who can see/join this goal:
-//   PRIVATE         → only creator
-//   COLLABORATIVE   → invited people contribute
-//   PUBLIC          → anyone can see, none contribute
-// ─────────────────────────────────────────────
-model Goal {
-  id                   String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  createdBy            String         @db.Uuid
-  title                String
-  description          String?
-  targetAmount         Decimal        @db.Decimal(10, 2)
-  currentAmount        Decimal        @default(0.00) @db.Decimal(10, 2)
-  contributionAmount   Decimal        @db.Decimal(10, 2)
-  frequency            GoalFrequency // DAILY, WEEKLY, MONTHLY
+  // GOAL only — null for bills
+  frequency            GoalFrequency? // DAILY, WEEKLY, MONTHLY
+  contributionAmount   Decimal?       @db.Decimal(10, 2)
   nextContributionDate DateTime?
   visibility           GoalVisibility @default(PRIVATE)
-  status               GoalStatus     @default(ACTIVE)
-  completedAt          DateTime?
-  createdAt            DateTime       @default(now())
-  updatedAt            DateTime       @default(now()) @updatedAt
 
-  creator       User               @relation("GoalCreator", fields: [createdBy], references: [id], onDelete: Cascade)
-  collaborators GoalCollaborator[]
-  messages      Message[]          @relation("GoalMessages")
+  creator       User                @relation("GroupCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  members       GroupMember[]
+  contributions GroupContribution[]
+  messages      Message[]
   notifications Notification[]
 
   @@index([createdBy])
+  @@index([type])
   @@index([status])
+  @@index([deadline])
   @@index([visibility])
 }
 
 // ─────────────────────────────────────────────
-// GOAL COLLABORATOR
-// People invited to contribute to a goal.
-// Only exists for COLLABORATIVE goals.
-// totalContributed — running sum of what
-//                    this person has put in
+// GROUP MEMBER
+// One row per person per group.
+//
+// BILL fields:
+//   shareAmount      — their cut of the bill
+//   status           — INVITED → COMMITTED → PAID
+//   lockedAt         — when money was soft locked
+//   paidAt           — when payment fired
+//
+// GOAL fields:
+//   totalContributed — running sum of all their
+//                      contributions to this goal
+//
+// isAdmin — can edit/cancel the group
 // ─────────────────────────────────────────────
-model GoalCollaborator {
-  id               String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  goalId           String   @db.Uuid
-  userId           String   @db.Uuid
-  totalContributed Decimal  @default(0.00) @db.Decimal(10, 2)
-  joinedAt         DateTime @default(now())
+model GroupMember {
+  id      String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  groupId String @db.Uuid
+  userId  String @db.Uuid
 
-  goal Goal @relation(fields: [goalId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isAdmin   Boolean  @default(false)
+  joinedAt  DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
-  @@unique([goalId, userId])
-  @@index([goalId])
+  // BILL only — null for goals
+  shareAmount Decimal?     @db.Decimal(10, 2)
+  status      MemberStatus @default(INVITED)
+  lockedAt    DateTime?
+  paidAt      DateTime?
+
+  // GOAL only — null for bills
+  totalContributed Decimal @default(0.00) @db.Decimal(10, 2)
+
+  group         Group               @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contributions GroupContribution[]
+
+  @@unique([groupId, userId])
+  @@index([groupId])
   @@index([userId])
+  @@index([status])
+}
+
+// ─────────────────────────────────────────────
+// GROUP CONTRIBUTION
+// Every individual payment or contribution.
+//
+// BILL — one row per member when they pay.
+//        records their shareAmount payment.
+//
+// GOAL — one row per contribution cycle.
+//        a person may have many rows here
+//        over time as they contribute on schedule.
+//
+// This is the full history for both types.
+// ─────────────────────────────────────────────
+model GroupContribution {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  groupId   String   @db.Uuid
+  userId    String   @db.Uuid
+  memberId  String   @db.Uuid
+  amount    Decimal  @db.Decimal(10, 2)
+  createdAt DateTime @default(now())
+
+  group  Group       @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  member GroupMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([groupId])
+  @@index([userId])
+  @@index([memberId])
+  @@index([createdAt])
 }
 
 // ─────────────────────────────────────────────
 // MESSAGE
-// One table for both challenge and goal chats.
-// challengeId OR goalId — one will always be
-// null depending on where the message lives.
-// senderId     — null means system generated
-// type         — USER or SYSTEM
-// System messages fire automatically on events:
-//   "Bahir committed 200 TJS ✅"
-//   "Goal is 50% complete 🎉"
-//   "2 days left on deadline ⏰"
+// One table for all group chats.
+// senderId null = system generated message.
+// Supabase Realtime subscribes per groupId.
 // ─────────────────────────────────────────────
 model Message {
-  id          String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  challengeId String?     @db.Uuid
-  goalId      String?     @db.Uuid
-  senderId    String?     @db.Uuid // null = system message
-  content     String
-  type        MessageType @default(USER)
-  createdAt   DateTime    @default(now())
+  id        String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  groupId   String      @db.Uuid
+  senderId  String?     @db.Uuid
+  content   String
+  type      MessageType @default(USER)
+  createdAt DateTime    @default(now())
 
-  challenge Challenge? @relation("ChallengeMessages", fields: [challengeId], references: [id], onDelete: Cascade)
-  goal      Goal?      @relation("GoalMessages", fields: [goalId], references: [id], onDelete: Cascade)
-  sender    User?      @relation(fields: [senderId], references: [id], onDelete: SetNull)
+  group  Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  sender User? @relation(fields: [senderId], references: [id], onDelete: SetNull)
 
-  @@index([challengeId])
-  @@index([goalId])
+  @@index([groupId])
   @@index([senderId])
   @@index([createdAt])
 }
 
 // ─────────────────────────────────────────────
 // NOTIFICATION
-// In-app only. No push for hackathon.
-// Every important event creates one row here.
-// read         — has the user seen it yet
-// referenceId  — the challenge or goal it's about
-// referenceType — "CHALLENGE" or "GOAL"
+// In-app only for hackathon.
+// Every event creates one row per affected user.
+// Bell badge = count where userId=me AND read=false
 // ─────────────────────────────────────────────
 model Notification {
-  id          String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  userId      String           @db.Uuid
-  challengeId String?          @db.Uuid
-  goalId      String?          @db.Uuid
-  type        NotificationType
-  title       String
-  body        String
-  read        Boolean          @default(false)
-  createdAt   DateTime         @default(now())
+  id        String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId    String           @db.Uuid
+  groupId   String?          @db.Uuid
+  type      NotificationType
+  title     String
+  body      String
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
 
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  challenge Challenge? @relation(fields: [challengeId], references: [id])
-  goal      Goal?      @relation(fields: [goalId], references: [id])
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group Group? @relation(fields: [groupId], references: [id])
 
   @@index([userId])
+  @@index([groupId])
   @@index([read])
   @@index([createdAt])
 }
@@ -287,16 +263,19 @@ model Notification {
 // ENUMS
 // ─────────────────────────────────────────────
 
-enum TransactionType {
-  TOPUP // Money added to wallet manually
-  LOCK // Soft locked on challenge commit
-  UNLOCK // Released when challenge fails/cancelled
-  PAYMENT // Fired when challenge completes
-  CONTRIBUTION // Added to a goal pool
-  REWARD // Bonus credited after completion
+enum GroupType {
+  BILL // money goes OUT
+  GOAL // money comes IN
 }
 
-enum ChallengeCategory {
+enum GroupStatus {
+  ACTIVE
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum GroupCategory {
   RENT
   ELECTRICITY
   WATER
@@ -307,22 +286,15 @@ enum ChallengeCategory {
 }
 
 enum SplitType {
-  EQUAL // App divides totalAmount evenly
-  CUSTOM // Each participant has manual shareAmount
+  EQUAL
+  CUSTOM
 }
 
-enum ChallengeStatus {
-  ACTIVE // Running, accepting commitments
-  COMPLETED // Everyone paid
-  FAILED // Deadline passed, not complete
-  CANCELLED // Creator cancelled
-}
-
-enum ParticipantStatus {
-  INVITED // Added but no response yet
-  COMMITTED // Joined + money soft locked
-  PAID // Payment fired
-  DECLINED // They said no
+enum MemberStatus {
+  INVITED
+  COMMITTED
+  PAID
+  DECLINED
 }
 
 enum GoalFrequency {
@@ -332,31 +304,34 @@ enum GoalFrequency {
 }
 
 enum GoalVisibility {
-  PRIVATE // Only creator sees and contributes
-  COLLABORATIVE // Invited people contribute together
-  PUBLIC // Anyone can see, nobody else contributes
+  PRIVATE
+  COLLABORATIVE
+  PUBLIC
 }
 
-enum GoalStatus {
-  ACTIVE
-  COMPLETED
-  CANCELLED
+enum TransactionType {
+  TOPUP
+  LOCK
+  UNLOCK
+  PAYMENT
+  CONTRIBUTION
+  REWARD
 }
 
 enum MessageType {
-  USER // Real person sent this
-  SYSTEM // App generated this automatically
+  USER
+  SYSTEM
 }
 
 enum NotificationType {
-  SOMEONE_COMMITTED // A participant locked their share
-  SOMEONE_PAID // A participant completed payment
-  YOU_ARE_LAST // Everyone else committed except you
-  DEADLINE_APPROACHING // 48 or 24 hours left
-  NO_ACTIVITY_REMINDER // Bill has no deadline, people inactive
-  CHALLENGE_COMPLETE // Everyone paid, bill done
-  CHALLENGE_FAILED // Deadline passed, someone didn't pay
-  GOAL_CONTRIBUTION_DUE // Your scheduled contribution is today
-  GOAL_MILESTONE // 25%, 50%, 75%, 100% reached
-  NEW_INVITE // You were added to a challenge or goal
+  SOMEONE_COMMITTED
+  SOMEONE_PAID
+  YOU_ARE_LAST
+  DEADLINE_APPROACHING
+  NO_ACTIVITY_REMINDER
+  GROUP_COMPLETE
+  GROUP_FAILED
+  GOAL_CONTRIBUTION_DUE
+  GOAL_MILESTONE
+  NEW_INVITE
 }

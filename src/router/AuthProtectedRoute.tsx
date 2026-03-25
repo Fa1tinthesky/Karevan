@@ -3,7 +3,7 @@ import { useSession } from "../context/SessionContext";
 
 const AuthProtectedRoute = () => {
   const { session } = useSession();
-  if (!session) return <Navigate to="/login" replace />;
+  if (!session) return <Navigate to="/auth/login" replace />;
   return <Outlet />;
 };
 
