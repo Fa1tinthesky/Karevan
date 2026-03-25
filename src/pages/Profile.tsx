@@ -10,7 +10,7 @@ import {
   Camera,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
-import { NavigateFunction, useNavigate } from "react-router-dom";
+import { type NavigateFunction, useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import BottomNav from "@/components/BottomNav";

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Search, X } from "lucide-react";
-import { useSearchUsers, SearchedUser } from "@/hooks/useSearchUsers";
+import { useSearchUsers, type SearchedUser } from "@/hooks/useSearchUsers";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 type Props = {

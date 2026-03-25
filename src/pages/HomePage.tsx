@@ -7,7 +7,6 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCurrentUser } from "@/context/SessionContext";
 import BottomNav from "@/components/BottomNav";
-import { useCurrentUser } from "@/context/SessionContext";
 import { useRecentTransactions } from "@/hooks/useRecentTransactions";
 import { useUnreadCount } from "@/hooks/useNotifications";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -40,8 +39,7 @@ const getGreeting = () => {
 const HomePage = () => {
   const [showBalance, setShowBalance] = useState(true);
   const navigate = useNavigate();
-<<<<<<< HEAD
-  const { user } = useCurrentUser();
+  const { user, isLoading } = useCurrentUser();
   const { data: transactions = [], isLoading: txLoading } = useRecentTransactions();
   const unreadCount = useUnreadCount();
 
@@ -54,11 +52,8 @@ const HomePage = () => {
 
   const balance = user?.wallet ? Number(user.wallet.balance) : 0;
   const locked = user?.wallet ? Number(user.wallet.lockedBalance) : 0;
-=======
-  const { user, isLoading } = useCurrentUser();
 
   if (!user) { navigate("/auth/sign-in")}
->>>>>>> c5e6f0e2d8853051886a5dfcefdccc62dc73df74
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -66,15 +61,8 @@ const HomePage = () => {
       <div className="gradient-primary px-5 pt-12 pb-8 rounded-b-[2rem]">
         <div className="flex items-center justify-between mb-6">
           <div>
-<<<<<<< HEAD
-            <p className="text-primary-foreground/70 text-sm">{getGreeting()},</p>
-            <h1 className="text-primary-foreground text-xl font-bold">
-              {user?.name ?? user?.username ?? "—"}
-            </h1>
-=======
             <p className="text-primary-foreground/70 text-sm">Good afternoon,</p>
             <h1 className="text-primary-foreground text-xl font-bold">{user ? user.username : "Firdavs"}</h1>
->>>>>>> c5e6f0e2d8853051886a5dfcefdccc62dc73df74
           </div>
           <div className="flex items-center gap-2">
             {/* Notification bell */}

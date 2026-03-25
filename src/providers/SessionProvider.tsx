@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import supabase from "../supabase/index";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import LoadingPage from "../pages/LoadingPage";
-import { Session } from "@supabase/supabase-js";
+import type { Session } from "@supabase/supabase-js";
 import { fetchCurrentUser } from "../context/SessionContext";
 import { userKeys } from "../context/SessionContext";
 

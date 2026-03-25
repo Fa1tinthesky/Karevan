@@ -24,6 +24,7 @@ import {
 } from "@/hooks/useGroupActions";
 import { useCurrentUser } from "@/context/SessionContext";
 import { formatDistanceToNow, format } from "date-fns";
+import ChatEmbedded from "@/components/ChatEmbedded";
 // import GroupChat from "@/components/GroupChat";
 
 // ── Status helpers ─────────────────────────────────────────────
@@ -504,6 +505,7 @@ const GroupDetailPage = () => {
         >
           💬 {showChat ? "Hide Chat" : "Open Group Chat"}
         </button>
+        { showChat ? < ChatEmbedded/ > : <div></div>}
 
         {/* {showChat && <GroupChat groupId={id!} />} */}
       </div>
