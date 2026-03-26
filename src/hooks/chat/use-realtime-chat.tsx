@@ -74,31 +74,23 @@ export function useRealtimeChat({ groupId, userId, username }: UseRealtimeChatPr
   }, [groupId])
 
   const sendMessage = useCallback(
-    async (content: string) => {
-      if (!content.trim()) return
+      async (content: string) => {
+          if (!content.trim()) return
 
-          const payload: SendMessagePayload = {
-              content: content.trim(),
-              senderId: userId,
-              groupId: groupId,
-          }
+              const payload: SendMessagePayload = {
+                  content: content.trim(),
+                  senderId: userId,
+                  groupId: groupId,
+              }
 
-          const { error } = await supabase
-            .from("Message")
-            .insert({ ...payload, type: "USER" })
+              const { error } = await supabase
+              .from("Message")
+              .insert({ ...payload, type: "USER" })
 
-          if (error) throw error
-/*
-      // Update local state immediately for the sender
-      setMessages((current) => [...current, message])
-
-      await channel.send({
-        type: 'broadcast',
-        event: EVENT_MESSAGE_TYPE,
-        payload: message,
-      }) */
-    },
-    [groupId, userId]
+              if (error) throw error
+                console.log("[CURRENT GROUP] ", groupId);
+      },
+      [groupId, userId]
   )
 
   return { sendMessage, isConnected }

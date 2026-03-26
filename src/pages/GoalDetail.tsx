@@ -2,7 +2,6 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Plus, UserPlus, Send, MoreVertical } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useState } from "react";
-import ChatEmbedded from "../components/ChatEmbedded.tsx";
 
 const goalsData: Record<string, {
   name: string; avatar: string; target: number; current: number;
@@ -150,38 +149,6 @@ const GoalDetail = () => {
           ))}
         </div>
       </div>
-
-      {/* Chat Messages */}
-      {/* <div className="flex-1 px-5 mt-4 space-y-3 overflow-y-auto"> */}
-      {/*   <h3 className="text-foreground text-sm font-semibold">Group Chat</h3> */}
-      {/*   {goal.messages.map((msg, i) => ( */}
-      {/*     <motion.div */}
-      {/*       key={i} */}
-      {/*       initial={{ opacity: 0, y: 10 }} */}
-      {/*       animate={{ opacity: 1, y: 0 }} */}
-      {/*       transition={{ delay: i * 0.05 }} */}
-      {/*       className={`flex ${msg.isMe ? "justify-end" : "justify-start"}`} */}
-      {/*     > */}
-      {/*       <div */}
-      {/*         className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${ */}
-      {/*           msg.isMe */}
-      {/*             ? "gradient-primary text-primary-foreground rounded-br-md" */}
-      {/*             : "bg-card shadow-card text-foreground rounded-bl-md" */}
-      {/*         }`} */}
-      {/*       > */}
-      {/*         {!msg.isMe && ( */}
-      {/*           <p className="text-primary text-[10px] font-semibold mb-0.5">{msg.sender}</p> */}
-      {/*         )} */}
-      {/*         <p className="text-sm">{msg.text}</p> */}
-      {/*         <p className={`text-[10px] mt-1 ${msg.isMe ? "text-primary-foreground/60" : "text-muted-foreground"}`}> */}
-      {/*           {msg.time} */}
-      {/*         </p> */}
-      {/*       </div> */}
-      {/*     </motion.div> */}
-      {/*   ))} */}
-      {/* </div> */}
-
-      <ChatEmbedded />
     </div>
   );
 };
