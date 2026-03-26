@@ -1,11 +1,11 @@
-import { Home, Wallet, User, LayoutGrid } from "lucide-react";
+import { Home, Wallet, User, Users } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
 const navItems = [
   { icon: Home, label: "Home", path: "/" },
-  { icon: LayoutGrid, label: "Services", path: "/services" },
-  { icon: Wallet, label: "Wallet", path: "/wallet", highlight: true },
+  { icon: Users, label: "Groups", path: "/groups" },
+  { icon: Wallet, label: "Wallet", path: "/wallet" },
   { icon: User, label: "Profile", path: "/profile" },
 ];
 
@@ -29,13 +29,25 @@ const BottomNav = () => {
               >
                 <motion.div
                   whileTap={{ scale: 0.9 }}
-                  className={`w-14 h-14 rounded-full flex items-center justify-center shadow-primary ${
-                    isActive ? "gradient-primary" : "gradient-primary opacity-80"
-                  }`}
+                  className="w-14 h-14 rounded-full flex items-center justify-center shadow-primary gradient-primary"
+                  style={{
+                    opacity: isActive ? 1 : 0.75,
+                    outline: isActive
+                      ? "3px solid hsl(var(--primary) / 0.3)"
+                      : "none",
+                    outlineOffset: "2px",
+                  }}
                 >
                   <Icon className="w-6 h-6 text-primary-foreground" />
                 </motion.div>
-                <span className="text-[10px] font-medium text-primary block text-center mt-1">
+                <span
+                  className="text-[10px] font-medium block text-center mt-1"
+                  style={{
+                    color: isActive
+                      ? "hsl(var(--primary))"
+                      : "hsl(var(--muted-foreground))",
+                  }}
+                >
                   {item.label}
                 </span>
               </button>

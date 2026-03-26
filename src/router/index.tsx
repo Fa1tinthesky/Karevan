@@ -14,6 +14,7 @@ import Login from "@/pages/auth/Login.tsx";
 import Profile from "@/pages/Profile.tsx";
 import NotificationsPage from "@/pages/NotificationsPage.tsx";
 import GroupDetailPage from "@/pages/GroupDetailsPage.tsx";
+import GroupsPage from "@/pages/GroupsPage.tsx"
 
 const router = createBrowserRouter([
   // I recommend you reflect the routes here in the pages folder
@@ -48,7 +49,11 @@ const router = createBrowserRouter([
               },
               {
                 path: "/notifications",
-                element: <NotificationsPage/>
+                element: <NotificationsPage />,
+              },
+              {
+                path: "/groups",
+                element: <GroupsPage />,
               },
             ],
           },
