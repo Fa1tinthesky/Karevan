@@ -52,11 +52,13 @@ async function createGroup(payload: CreateGroupPayload, creatorId: string) {
       groupId: group.id,
       userId: creatorId,
       isAdmin: true,
-      status: "COMMITTED", // creator is auto-committed
+      status: "COMMITTED", // ← already there, but make sure shareAmount is set
       shareAmount:
         payload.type === "BILL" && payload.splitType === "EQUAL"
           ? payload.targetAmount / (payload.memberIds.length + 1)
-          : null,
+          : payload.type === "BILL" && payload.splitType === "CUSTOM"
+            ? null // custom — admin sets manually
+            : null, // goal — no share amount
     },
     // 3. Add all invited members
     ...payload.memberIds.map((userId) => ({

@@ -14,6 +14,9 @@ import {
   Wallet,
   Calendar,
   Target,
+  Send,
+  Trash2,
+  UserPlus,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useGroup } from "@/hooks/useGroup";
@@ -21,21 +24,19 @@ import {
   useCommitToGroup,
   useContributeToGoal,
   useCancelGroup,
+  useSendToDestination,
+  useDeleteGroup,
+  useAddMember,
 } from "@/hooks/useGroupActions";
 import { useCurrentUser } from "@/context/SessionContext";
 import { formatDistanceToNow, format } from "date-fns";
-import ChatEmbedded from "@/components/ChatEmbedded";
 import { GroupChat } from "@/components/realtime-chat";
-// import GroupChat from "@/components/GroupChat";
+import { UserSearchInput } from "@/components/UserSearchInput";
+import type { SearchedUser } from "@/hooks/useSearchUsers";
 
-// ── Status helpers ─────────────────────────────────────────────
 const MEMBER_STATUS_CONFIG: Record<
   string,
-  {
-    label: string;
-    color: string;
-    icon: any;
-  }
+  { label: string; color: string; icon: any }
 > = {
   INVITED: { label: "Invited", color: "text-yellow-500", icon: Clock },
   COMMITTED: { label: "Committed", color: "text-blue-500", icon: Lock },
@@ -45,11 +46,7 @@ const MEMBER_STATUS_CONFIG: Record<
 
 const GROUP_STATUS_CONFIG: Record<
   string,
-  {
-    label: string;
-    bg: string;
-    text: string;
-  }
+  { label: string; bg: string; text: string }
 > = {
   ACTIVE: { label: "Active", bg: "bg-primary/15", text: "text-primary" },
   COMPLETED: {
@@ -65,7 +62,17 @@ const GROUP_STATUS_CONFIG: Record<
   },
 };
 
-// ── Contribute modal ───────────────────────────────────────────
+const categoryIcon: Record<string, string> = {
+  RENT: "🏠",
+  ELECTRICITY: "⚡",
+  WATER: "💧",
+  INTERNET: "📡",
+  TRIP: "✈️",
+  GIFT: "🎁",
+  OTHER: "🧾",
+};
+
+// ── Contribute modal (goal) ────────────────────────────────────
 const ContributeModal = ({
   open,
   onClose,
@@ -80,7 +87,6 @@ const ContributeModal = ({
   suggestedAmount: number;
 }) => {
   const [amount, setAmount] = useState(String(suggestedAmount));
-
   return (
     <AnimatePresence>
       {open && (
@@ -132,34 +138,123 @@ const ContributeModal = ({
   );
 };
 
+// ── Add member sheet ───────────────────────────────────────────
+const AddMemberSheet = ({
+  open,
+  onClose,
+  onAdd,
+  isPending,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onAdd: (user: SearchedUser) => void;
+  isPending: boolean;
+}) => {
+  const [selected, setSelected] = useState<SearchedUser | null>(null);
+  const [shareAmount, setShareAmount] = useState("");
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 bg-black/50 z-40"
+          />
+          <motion.div
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-3xl p-6 max-h-[80vh] overflow-y-auto"
+          >
+            <div className="w-10 h-1 rounded-full bg-border mx-auto mb-6" />
+            <h3 className="text-foreground font-bold text-lg mb-4">
+              Add Member
+            </h3>
+
+            <UserSearchInput
+              selectedUsers={selected ? [selected] : []}
+              onAdd={(u) => setSelected(u)}
+              onRemove={() => setSelected(null)}
+            />
+
+            {selected && (
+              <div className="mt-4">
+                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                  Their share amount (TJS)
+                </label>
+                <input
+                  type="number"
+                  value={shareAmount}
+                  onChange={(e) => setShareAmount(e.target.value)}
+                  placeholder="e.g. 200"
+                  className="w-full px-4 py-3 rounded-xl bg-secondary text-foreground outline-none border border-border focus:border-primary transition-colors text-sm"
+                />
+              </div>
+            )}
+
+            <button
+              onClick={() => {
+                if (selected) {
+                  onAdd(selected);
+                  setSelected(null);
+                  setShareAmount("");
+                }
+              }}
+              disabled={!selected || isPending}
+              className="w-full py-4 rounded-2xl gradient-primary text-primary-foreground font-semibold mt-4 disabled:opacity-50 flex items-center justify-center"
+            >
+              {isPending ? (
+                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                "Add to Group"
+              )}
+            </button>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+};
+
 // ── Main page ──────────────────────────────────────────────────
 const GroupDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useCurrentUser();
   const { data: group, isLoading, error } = useGroup(id!);
+
   const { mutate: commitToGroup, isPending: isCommitting } = useCommitToGroup(
     id!,
   );
   const { mutate: contributeToGoal, isPending: isContributing } =
     useContributeToGoal(id!);
+  const { mutate: sendToDestination, isPending: isSending } =
+    useSendToDestination(id!);
+  const { mutate: deleteGroup, isPending: isDeleting } = useDeleteGroup(id!);
+  const { mutate: addMember, isPending: isAddingMember } = useAddMember(id!);
   const { mutate: cancelGroup, isPending: isCancelling } = useCancelGroup(id!);
 
   const [showContribute, setShowContribute] = useState(false);
   const [showMembers, setShowMembers] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
   const [showChat, setShowChat] = useState(false);
-  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showSendConfirm, setShowSendConfirm] = useState(false);
+  const [showAddMember, setShowAddMember] = useState(false);
 
-  if (isLoading) {
+  if (isLoading)
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
       </div>
     );
-  }
 
-  if (error || !group) {
+  if (error || !group)
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-3">
         <AlertCircle className="w-10 h-10 text-muted-foreground" />
@@ -169,35 +264,37 @@ const GroupDetailPage = () => {
         </button>
       </div>
     );
-  }
 
   const currentMember = group.members.find((m) => m.userId === user?.id);
   const isAdmin = currentMember?.isAdmin ?? false;
   const isBill = group.type === "BILL";
   const isActive = group.status === "ACTIVE";
+  const isEqualSplit = group.splitType === "EQUAL";
   const progress =
     group.targetAmount > 0
       ? Math.min((group.currentAmount / group.targetAmount) * 100, 100)
       : 0;
 
-  const statusConfig = GROUP_STATUS_CONFIG[group.status] ?? GROUP_STATUS_CONFIG.ACTIVE;
+  const statusConfig =
+    GROUP_STATUS_CONFIG[group.status] ??
+    GROUP_STATUS_CONFIG["ACTIVE"] ?? {
+      label: "Active",
+      bg: "bg-primary/15",
+      text: "text-primary",
+    };
 
-  // What action button to show for current user
+  // All non-declined members committed?
+  const allCommitted = group.members
+    .filter((m) => m.status !== "DECLINED")
+    .every((m) => m.status === "COMMITTED" || m.status === "PAID");
+
+  // Button visibility
   const showCommitButton =
     isBill && isActive && currentMember?.status === "INVITED";
-
   const showContributeButton =
     !isBill && isActive && currentMember && currentMember.status !== "DECLINED";
-
-  const categoryIcon: Record<string, string> = {
-    RENT: "🏠",
-    ELECTRICITY: "⚡",
-    WATER: "💧",
-    INTERNET: "📡",
-    TRIP: "✈️",
-    GIFT: "🎁",
-    OTHER: "🧾",
-  };
+  const showSendButton = isBill && isActive && isAdmin && allCommitted;
+  const showAddMemberButton = isActive && isAdmin && !isEqualSplit;
 
   return (
     <div className="min-h-screen bg-background pb-10">
@@ -206,29 +303,41 @@ const GroupDetailPage = () => {
         <div className="flex items-center justify-between mb-5">
           <motion.button
             whileTap={{ scale: 0.96 }}
-            style={{cursor: "pointer"}}
             onClick={() => navigate(-1)}
             className="w-9 h-9 rounded-xl bg-primary-foreground/20 flex items-center justify-center"
           >
             <ArrowLeft className="w-5 h-5 text-primary-foreground" />
           </motion.button>
+
           <span
-            className={`text-xs font-semibold px-3 py-1 rounded-full ${statusConfig!.bg} ${statusConfig!.text}`}
+            className={`text-xs font-semibold px-3 py-1 rounded-full ${statusConfig.bg} ${statusConfig.text}`}
           >
-            {statusConfig!.label}
+            {statusConfig.label}
           </span>
+
+          {/* Admin actions top right */}
           {isAdmin && isActive && (
-            <button
-              onClick={() => setShowCancelConfirm(true)}
-              className="text-primary-foreground/60 text-xs"
-            >
-              Cancel
-            </button>
+            <div className="flex gap-2">
+              {showAddMemberButton && (
+                <button
+                  onClick={() => setShowAddMember(true)}
+                  className="w-8 h-8 rounded-xl bg-primary-foreground/20 flex items-center justify-center"
+                >
+                  <UserPlus className="w-4 h-4 text-primary-foreground" />
+                </button>
+              )}
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="w-8 h-8 rounded-xl bg-red-500/20 flex items-center justify-center"
+              >
+                <Trash2 className="w-4 h-4 text-red-300" />
+              </button>
+            </div>
           )}
           {!isAdmin && <div className="w-9" />}
         </div>
 
-        {/* Title and icon */}
+        {/* Title */}
         <div className="flex items-center gap-4 mb-5">
           <div className="w-14 h-14 rounded-2xl bg-primary-foreground/20 flex items-center justify-center text-3xl">
             {isBill ? (categoryIcon[group.category ?? "OTHER"] ?? "🧾") : "🎯"}
@@ -240,6 +349,11 @@ const GroupDetailPage = () => {
             {group.description && (
               <p className="text-primary-foreground/60 text-sm mt-0.5">
                 {group.description}
+              </p>
+            )}
+            {group.destination && (
+              <p className="text-primary-foreground/50 text-xs mt-1">
+                → {group.destination}
               </p>
             )}
           </div>
@@ -278,10 +392,10 @@ const GroupDetailPage = () => {
       </div>
 
       <div className="px-5 mt-5 space-y-4">
-        {/* Meta info */}
-        <div className="flex gap-3">
+        {/* Meta */}
+        <div className="flex gap-3 flex-wrap">
           {group.deadline && (
-            <div className="flex-1 bg-card rounded-xl p-3 flex items-center gap-2 shadow-card">
+            <div className="flex-1 bg-card rounded-xl p-3 flex items-center gap-2 shadow-card min-w-[120px]">
               <Calendar className="w-4 h-4 text-primary shrink-0" />
               <div>
                 <p className="text-xs text-muted-foreground">Deadline</p>
@@ -292,7 +406,7 @@ const GroupDetailPage = () => {
             </div>
           )}
           {group.frequency && (
-            <div className="flex-1 bg-card rounded-xl p-3 flex items-center gap-2 shadow-card">
+            <div className="flex-1 bg-card rounded-xl p-3 flex items-center gap-2 shadow-card min-w-[120px]">
               <Target className="w-4 h-4 text-primary shrink-0" />
               <div>
                 <p className="text-xs text-muted-foreground">Frequency</p>
@@ -302,7 +416,7 @@ const GroupDetailPage = () => {
               </div>
             </div>
           )}
-          <div className="flex-1 bg-card rounded-xl p-3 flex items-center gap-2 shadow-card">
+          <div className="flex-1 bg-card rounded-xl p-3 flex items-center gap-2 shadow-card min-w-[120px]">
             <Users className="w-4 h-4 text-primary shrink-0" />
             <div>
               <p className="text-xs text-muted-foreground">Members</p>
@@ -313,7 +427,7 @@ const GroupDetailPage = () => {
           </div>
         </div>
 
-        {/* Action button */}
+        {/* Member commits - Pay my share button */}
         {showCommitButton && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -329,19 +443,51 @@ const GroupDetailPage = () => {
               ) : (
                 <>
                   <Lock className="w-4 h-4" />
-                  Commit{" "}
+                  Pay My Share —{" "}
                   {currentMember?.shareAmount
                     ? `${currentMember.shareAmount.toLocaleString()} TJS`
-                    : "my share"}
+                    : "Set by admin"}
                 </>
               )}
             </button>
             <p className="text-xs text-muted-foreground text-center mt-2">
-              Your share will be soft-locked in your wallet
+              Your share is soft-locked in your wallet until admin sends payment
             </p>
           </motion.div>
         )}
 
+        {/* Admin send to destination — only when all committed */}
+        {showSendButton && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <button
+              onClick={() => setShowSendConfirm(true)}
+              className="w-full py-4 rounded-2xl bg-green-600 text-white font-semibold text-sm flex items-center justify-center gap-2"
+            >
+              <Send className="w-4 h-4" />
+              Send to Destination
+            </button>
+            <p className="text-xs text-muted-foreground text-center mt-2">
+              Everyone has committed. Ready to send.
+            </p>
+          </motion.div>
+        )}
+
+        {/* Admin waiting message */}
+        {isBill &&
+          isActive &&
+          isAdmin &&
+          !allCommitted &&
+          currentMember?.status === "COMMITTED" && (
+            <div className="w-full py-4 rounded-2xl bg-secondary text-muted-foreground font-medium text-sm flex items-center justify-center gap-2">
+              <Clock className="w-4 h-4" />
+              Waiting for everyone to commit...
+            </div>
+          )}
+
+        {/* Goal contribute button */}
         {showContributeButton && (
           <button
             onClick={() => setShowContribute(true)}
@@ -352,7 +498,7 @@ const GroupDetailPage = () => {
           </button>
         )}
 
-        {/* Members section */}
+        {/* Members */}
         <div className="bg-card rounded-2xl shadow-card overflow-hidden">
           <button
             onClick={() => setShowMembers(!showMembers)}
@@ -398,7 +544,7 @@ const GroupDetailPage = () => {
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground flex items-center gap-1">
+                          <p className="text-sm font-medium text-foreground flex items-center gap-1 flex-wrap">
                             {member.user.name ?? member.user.username}
                             {isMe && (
                               <span className="text-[10px] text-muted-foreground">
@@ -436,7 +582,7 @@ const GroupDetailPage = () => {
           </AnimatePresence>
         </div>
 
-        {/* Contribution history */}
+        {/* Activity history */}
         {group.contributions.length > 0 && (
           <div className="bg-card rounded-2xl shadow-card overflow-hidden">
             <button
@@ -453,7 +599,6 @@ const GroupDetailPage = () => {
                 <ChevronDown className="w-4 h-4 text-muted-foreground" />
               )}
             </button>
-
             <AnimatePresence>
               {showHistory && (
                 <motion.div
@@ -501,38 +646,51 @@ const GroupDetailPage = () => {
           </div>
         )}
 
-        {/* Chat toggle */}
+        {/* Chat */}
         <button
           onClick={() => setShowChat(!showChat)}
           className="w-full py-3.5 rounded-2xl border border-border bg-card text-foreground font-semibold text-sm flex items-center justify-center gap-2 shadow-card"
         >
           💬 {showChat ? "Hide Chat" : "Open Group Chat"}
         </button>
-        { showChat ? <GroupChat groupId={id!}/> : <div></div>}
+        {showChat && <GroupChat groupId={id!} />}
       </div>
 
-      {/* Contribute modal */}
+      {/* Contribute modal (goals) */}
       <ContributeModal
         open={showContribute}
         onClose={() => setShowContribute(false)}
-        onConfirm={(amount) => {
+        onConfirm={(amount) =>
           contributeToGoal(amount, {
             onSuccess: () => setShowContribute(false),
-          });
-        }}
+          })
+        }
         isPending={isContributing}
         suggestedAmount={group.contributionAmount ?? 0}
       />
 
-      {/* Cancel confirm */}
+      {/* Add member sheet */}
+      <AddMemberSheet
+        open={showAddMember}
+        onClose={() => setShowAddMember(false)}
+        isPending={isAddingMember}
+        onAdd={(u) => {
+          addMember(
+            { userId: u.id },
+            { onSuccess: () => setShowAddMember(false) },
+          );
+        }}
+      />
+
+      {/* Send to destination confirm */}
       <AnimatePresence>
-        {showCancelConfirm && (
+        {showSendConfirm && (
           <>
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setShowCancelConfirm(false)}
+              onClick={() => setShowSendConfirm(false)}
               className="fixed inset-0 bg-black/50 z-40"
             />
             <motion.div
@@ -544,35 +702,105 @@ const GroupDetailPage = () => {
             >
               <div className="w-10 h-1 rounded-full bg-border mx-auto mb-6" />
               <h3 className="text-foreground font-bold text-lg mb-2">
-                Cancel Group?
+                Send Payment?
               </h3>
-              <p className="text-muted-foreground text-sm mb-6">
-                All committed funds will be returned to members. This cannot be
-                undone.
+              <p className="text-muted-foreground text-sm mb-2">
+                Total:{" "}
+                <span className="font-semibold text-foreground">
+                  {group.currentAmount.toLocaleString()} TJS
+                </span>
+              </p>
+              {group.destination && (
+                <p className="text-muted-foreground text-sm mb-6">
+                  To:{" "}
+                  <span className="font-semibold text-foreground">
+                    {group.destination}
+                  </span>
+                </p>
+              )}
+              <p className="text-muted-foreground text-xs mb-6">
+                This will permanently deduct everyone's share from their
+                wallets.
               </p>
               <div className="flex gap-3">
                 <button
-                  onClick={() => setShowCancelConfirm(false)}
+                  onClick={() => setShowSendConfirm(false)}
+                  className="flex-1 py-3.5 rounded-2xl border border-border text-foreground font-semibold text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() =>
+                    sendToDestination(undefined, {
+                      onSuccess: () => {
+                        setShowSendConfirm(false);
+                      },
+                    })
+                  }
+                  disabled={isSending}
+                  className="flex-1 py-3.5 rounded-2xl bg-green-600 text-white font-semibold text-sm flex items-center justify-center disabled:opacity-50"
+                >
+                  {isSending ? (
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    "Confirm Send"
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Delete confirm */}
+      <AnimatePresence>
+        {showDeleteConfirm && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowDeleteConfirm(false)}
+              className="fixed inset-0 bg-black/50 z-40"
+            />
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-3xl p-6"
+            >
+              <div className="w-10 h-1 rounded-full bg-border mx-auto mb-6" />
+              <h3 className="text-foreground font-bold text-lg mb-2">
+                Delete Group?
+              </h3>
+              <p className="text-muted-foreground text-sm mb-6">
+                All committed funds will be returned to members. The group and
+                all its data will be permanently deleted.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
                   className="flex-1 py-3.5 rounded-2xl border border-border text-foreground font-semibold text-sm"
                 >
                   Keep Group
                 </button>
                 <button
                   onClick={() =>
-                    cancelGroup(undefined, {
+                    deleteGroup(undefined, {
                       onSuccess: () => {
-                        setShowCancelConfirm(false);
+                        setShowDeleteConfirm(false);
                         navigate(-1);
                       },
                     })
                   }
-                  disabled={isCancelling}
+                  disabled={isDeleting}
                   className="flex-1 py-3.5 rounded-2xl bg-destructive text-white font-semibold text-sm flex items-center justify-center disabled:opacity-50"
                 >
-                  {isCancelling ? (
+                  {isDeleting ? (
                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   ) : (
-                    "Cancel Group"
+                    "Delete"
                   )}
                 </button>
               </div>

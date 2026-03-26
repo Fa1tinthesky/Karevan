@@ -35,10 +35,22 @@ export type GroupWithMembers = {
 };
 
 async function fetchGroups(userId: string): Promise<GroupWithMembers[]> {
+  // First get the group IDs this user is actually a member of
+  const { data: memberships, error: memberError } = await supabase
+    .from("GroupMember")
+    .select("groupId")
+    .eq("userId", userId)
+    .neq("status", "DECLINED"); // declined invites don't show
+
+  if (memberError) throw memberError;
+  if (!memberships || memberships.length === 0) return [];
+
+  const groupIds = memberships.map((m) => m.groupId);
+
+  // Now fetch only those groups
   const { data, error } = await supabase
     .from("Group")
-    .select(
-      `
+    .select(`
       id, type, title, description, status,
       targetAmount, currentAmount, category,
       splitType, destination, deadline, frequency,
@@ -48,13 +60,13 @@ async function fetchGroups(userId: string): Promise<GroupWithMembers[]> {
         shareAmount, totalContributed,
         user:User(id, name, username, avatarUrl)
       )
-    `,
-    )
-    .eq("members.userId", userId)
+    `)
+    .in("id", groupIds)
     .neq("status", "CANCELLED")
     .order("createdAt", { ascending: false });
 
   if (error) throw error;
+
   return (data as any[]).map((g) => ({
     ...g,
     targetAmount: Number(g.targetAmount),
@@ -62,8 +74,15 @@ async function fetchGroups(userId: string): Promise<GroupWithMembers[]> {
     contributionAmount: g.contributionAmount
       ? Number(g.contributionAmount)
       : null,
+    members: (g.members ?? []).map((m: any) => ({
+      ...m,
+      shareAmount: m.shareAmount ? Number(m.shareAmount) : null,
+      totalContributed: Number(m.totalContributed),
+      user: Array.isArray(m.user) ? m.user[0] ?? null : m.user,
+    })),
   }));
 }
+
 
 export const groupKeys = {
   all: () => ["groups"] as const,
