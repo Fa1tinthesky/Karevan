@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Users, Target, ChevronRight, Receipt } from "lucide-react";
+import { Plus, Users, Target, ChevronRight, Receipt, Bell } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
 import { CreateGroupSheet } from "@/components/CreateGroupSheet";
 import { useGroups } from "@/hooks/useGroups";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useUnreadCount } from "@/hooks/useNotifications";
 
 const categoryIcon: Record<string, string> = {
   RENT: "🏠",
@@ -22,6 +23,7 @@ const GroupsPage = () => {
   const { data: groups = [], isLoading } = useGroups();
   const [showCreate, setShowCreate] = useState(false);
   const [activeTab, setActiveTab] = useState<"BILL" | "GOAL">("BILL");
+  const unreadCount = useUnreadCount();
 
   const filtered = groups.filter((g) => g.type === activeTab);
 
@@ -31,13 +33,29 @@ const GroupsPage = () => {
       <div className="gradient-primary px-5 pt-12 pb-6 rounded-b-[2rem]">
         <div className="flex items-center justify-between mb-2">
           <h1 className="text-primary-foreground text-xl font-bold">Groups</h1>
-          <motion.button
-            whileTap={{ scale: 0.96 }}
-            onClick={() => setShowCreate(true)}
-            className="w-9 h-9 rounded-xl bg-primary-foreground/20 flex items-center justify-center"
-          >
-            <Plus className="w-5 h-5 text-primary-foreground" />
-          </motion.button>
+          <div className="flex items-center gap-2">
+              <motion.button
+                whileTap={{ scale: 0.96 }}
+                onClick={() => setShowCreate(true)}
+                className="w-9 h-9 rounded-xl bg-primary-foreground/20 flex items-center justify-center"
+              >
+                <Plus className="w-5 h-5 text-primary-foreground" />
+              </motion.button>
+
+                <button
+                  onClick={() => navigate("/notifications")}
+                  className="relative w-10 h-10 rounded-full bg-primary-foreground/20 flex items-center justify-center"
+                >
+                  <Bell className="w-5 h-5 text-primary-foreground" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center">
+                      <span className="text-white text-[10px] font-bold">
+                        {unreadCount > 9 ? "9+" : unreadCount}
+                      </span>
+                    </span>
+                  )}
+                </button>
+            </div>
         </div>
         <p className="text-primary-foreground/60 text-sm">
           {groups.length} active group{groups.length !== 1 ? "s" : ""}

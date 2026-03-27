@@ -9,6 +9,7 @@ import {
   Wifi,
   CreditCard,
   Lock,
+  Bell,
   ChevronRight,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -16,6 +17,7 @@ import BottomNav from "@/components/BottomNav";
 import { useCurrentUser } from "@/context/SessionContext";
 import { useRecentTransactions } from "@/hooks/useRecentTransactions";
 import { formatDistanceToNow } from "date-fns";
+import { useUnreadCount } from "@/hooks/useNotifications";
 
 const TX_CONFIG: Record<
   string,
@@ -35,6 +37,7 @@ const WalletPage = () => {
   const { data: transactions = [], isLoading } = useRecentTransactions();
   const [showBalance, setShowBalance] = useState(true);
 
+  const unreadCount = useUnreadCount();
   const balance = user?.wallet ? Number(user.wallet.balance) : 0;
   const locked = user?.wallet ? Number(user.wallet.lockedBalance) : 0;
   const total = balance + locked;
@@ -42,10 +45,28 @@ const WalletPage = () => {
   return (
     <div className="min-h-screen bg-background pb-28">
       {/* Header */}
-      <div className="gradient-primary px-5 pt-12 pb-8 rounded-b-[2rem]">
-        <h1 className="text-primary-foreground text-xl font-bold mb-5">
+      <div className="gradient-primary px-5 pt-10 pb-8 rounded-b-[2rem]">
+        <div className="flex self-center items-center justify-between m-auto p-2">
+        <h1 className="text-primary-foreground text-xl font-bold mb-3">
           Wallet
         </h1>
+        <div className="flex items-center gap-2">
+          <motion.button
+            whileTap={{ scale: 0.96 }}
+            onClick={() => navigate("/notifications")}
+            className="relative w-10 h-10 rounded-full bg-primary-foreground/20 flex items-center justify-center"
+          >
+            <Bell className="w-5 h-5 text-primary-foreground" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center">
+                <span className="text-white text-[10px] font-bold">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              </span>
+            )}
+          </motion.button>
+          </div>
+        </div>
 
         {/* Main balance */}
         <motion.div
@@ -118,7 +139,7 @@ const WalletPage = () => {
             {[
               { icon: Send, label: "Transfer", route: "/groups" },
               { icon: Smartphone, label: "Top Up", route: null },
-              { icon: Zap, label: "Pay Bills", route: null },
+              { icon: Zap, label: "Pay Bills", route: "/groups" },
               { icon: Wifi, label: "Internet", route: null },
             ].map((a) => (
               <button
