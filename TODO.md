@@ -8,6 +8,7 @@
 - Add notifications button to every page []
 - Add members to goals
 - Transactions when split even
+- Message on insufficient funds for transaction
 
 
 - Add Notification Logic(Read, Accept, Reject). (куль)
