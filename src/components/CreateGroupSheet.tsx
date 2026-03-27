@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ChevronRight, ChevronLeft } from "lucide-react";
-import { useCreateGroup, type CreateGroupPayload } from "@/hooks/useCreateGroup";
+import {
+  useCreateGroup,
+  type CreateGroupPayload,
+} from "@/hooks/useCreateGroup";
 import { UserSearchInput } from "@/components/UserSearchInput";
 import { type SearchedUser } from "../hooks/useSearchUsers";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -75,6 +78,8 @@ export const CreateGroupSheet = ({ open, onClose }: Props) => {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormState>(initial);
   const { mutate: createGroup, isPending } = useCreateGroup();
+  // Add this state at the top of CreateGroupSheet
+  const [createError, setCreateError] = useState<string | null>(null);
 
   const set = (key: keyof FormState, value: any) =>
     setForm((p) => ({ ...p, [key]: value }));
@@ -91,35 +96,30 @@ export const CreateGroupSheet = ({ open, onClose }: Props) => {
     return true;
   };
 
+  // Update handleSubmit
   const handleSubmit = () => {
+    setCreateError(null);
     const payload: CreateGroupPayload = {
       type: form.type,
-      title: form.title.trim(),
-      description: form.description.trim() || undefined,
+      title: form.title,
       targetAmount: Number(form.targetAmount),
       memberIds: form.members.map((m) => m.id),
-      ...(form.type === "BILL"
-        ? {
-            category: form.category,
-            splitType: form.splitType,
-            destination: form.destination || undefined,
-            deadline: form.deadline || null,
-          }
-        : {
-            frequency: form.frequency,
-            contributionAmount: Number(form.contributionAmount) || undefined,
-            visibility: form.visibility,
-          }),
     };
 
     createGroup(payload, {
       onSuccess: () => {
         setForm(initial);
         setStep(0);
+        setCreateError(null);
         onClose();
+      },
+      onError: (err: any) => {
+        setCreateError(err.message ?? "Failed to create group");
       },
     });
   };
+
+  // Add this above the footer CTA button in the sheet JSX
 
   const handleClose = () => {
     setForm(initial);
@@ -532,6 +532,12 @@ export const CreateGroupSheet = ({ open, onClose }: Props) => {
                 </div>
               )}
             </div>
+
+            {createError && (
+              <p className="text-destructive text-xs text-center px-2">
+                {createError}
+              </p>
+            )}
 
             {/* Footer CTA */}
             <div className="px-5 py-4 border-t border-border">

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import supabase from "@/supabase";
 import { useSession } from "@/context/SessionContext";
 import { groupKeys } from "./useGroups";
+import { userKeys } from "../context/SessionContext";
 
 export type AppNotification = {
   id: string;
@@ -80,7 +81,6 @@ export const useMarkAllRead = () => {
   });
 };
 
-
 export const useAcceptInvite = () => {
   const { session } = useSession();
   const queryClient = useQueryClient();
@@ -93,24 +93,24 @@ export const useAcceptInvite = () => {
       groupId: string;
       notificationId: string;
     }) => {
-      const { error } = await supabase
-        .from("GroupMember")
-        .update({ status: "COMMITTED" })
-        .eq("groupId", groupId)
-        .eq("userId", session!.user.id);
+      // Call the RPC — this checks balance and locks money properly
+      const { error } = await supabase.rpc("commit_to_group", {
+        p_group_id: groupId,
+        p_user_id: session!.user.id,
+      });
 
       if (error) throw error;
 
+      // Mark notification as read
       await supabase
         .from("Notification")
         .update({ read: true })
         .eq("id", notificationId);
-
-      return notificationId;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: notificationKeys.all() });
       queryClient.invalidateQueries({ queryKey: groupKeys.all() });
+      queryClient.invalidateQueries({ queryKey: userKeys.me() });
     },
   });
 };

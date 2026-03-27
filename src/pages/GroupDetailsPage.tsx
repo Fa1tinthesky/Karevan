@@ -275,8 +275,7 @@ const GroupDetailPage = () => {
       ? Math.min((group.currentAmount / group.targetAmount) * 100, 100)
       : 0;
 
-  const statusConfig =
-    GROUP_STATUS_CONFIG[group.status] ??
+  const statusConfig = GROUP_STATUS_CONFIG[group.status] ??
     GROUP_STATUS_CONFIG["ACTIVE"] ?? {
       label: "Active",
       bg: "bg-primary/15",
@@ -293,8 +292,15 @@ const GroupDetailPage = () => {
     isBill && isActive && currentMember?.status === "INVITED";
   const showContributeButton =
     !isBill && isActive && currentMember && currentMember.status !== "DECLINED";
-  const showSendButton = isBill && isActive && isAdmin && allCommitted;
-  const showAddMemberButton = isActive && isAdmin && !isEqualSplit;
+  // NEW — send button only when progress bar is full (currentAmount >= targetAmount)
+  const showSendButton =
+    isBill &&
+    isActive &&
+    isAdmin &&
+    allCommitted &&
+    group.currentAmount >= group.targetAmount;
+  // NEW — goals can always add members, bills only if custom split
+  const showAddMemberButton = isActive && isAdmin && (!isBill || !isEqualSplit);
 
   return (
     <div className="min-h-screen bg-background pb-10">
@@ -753,6 +759,7 @@ const GroupDetailPage = () => {
       </AnimatePresence>
 
       {/* Delete confirm */}
+      {/* Delete confirm sheet — replace the existing one */}
       <AnimatePresence>
         {showDeleteConfirm && (
           <>
@@ -772,44 +779,71 @@ const GroupDetailPage = () => {
             >
               <div className="w-10 h-1 rounded-full bg-border mx-auto mb-6" />
               <h3 className="text-foreground font-bold text-lg mb-2">
-                Delete Group?
+                Delete {isBill ? "Bill" : "Goal"}?
               </h3>
-              <p className="text-muted-foreground text-sm mb-6">
-                All committed funds will be returned to members. The group and
-                all its data will be permanently deleted.
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowDeleteConfirm(false)}
-                  className="flex-1 py-3.5 rounded-2xl border border-border text-foreground font-semibold text-sm"
-                >
-                  Keep Group
-                </button>
-                <button
-                  onClick={() =>
-                    deleteGroup(undefined, {
-                      onSuccess: () => {
-                        setShowDeleteConfirm(false);
-                        navigate(-1);
-                      },
-                    })
-                  }
-                  disabled={isDeleting}
-                  className="flex-1 py-3.5 rounded-2xl bg-destructive text-white font-semibold text-sm flex items-center justify-center disabled:opacity-50"
-                >
-                  {isDeleting ? (
-                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    "Delete"
-                  )}
-                </button>
-              </div>
+
+              {/* Block deletion if goal has balance */}
+              {!isBill && group.currentAmount > 0 ? (
+                <>
+                  <p className="text-muted-foreground text-sm mb-2">
+                    This goal has{" "}
+                    <span className="font-semibold text-foreground">
+                      {group.currentAmount.toLocaleString()} TJS
+                    </span>{" "}
+                    saved.
+                  </p>
+                  <p className="text-muted-foreground text-sm mb-6">
+                    You need to withdraw or spend this balance before deleting
+                    the goal.
+                  </p>
+                  <button
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="w-full py-3.5 rounded-2xl gradient-primary text-primary-foreground font-semibold text-sm"
+                  >
+                    Got it
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="text-muted-foreground text-sm mb-6">
+                    {isBill
+                      ? "All committed funds will be returned to members. This cannot be undone."
+                      : "This goal has no balance. It will be permanently deleted."}
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setShowDeleteConfirm(false)}
+                      className="flex-1 py-3.5 rounded-2xl border border-border text-foreground font-semibold text-sm"
+                    >
+                      Keep {isBill ? "Bill" : "Goal"}
+                    </button>
+                    <button
+                      onClick={() =>
+                        deleteGroup(undefined, {
+                          onSuccess: () => {
+                            setShowDeleteConfirm(false);
+                            navigate(-1);
+                          },
+                        })
+                      }
+                      disabled={isDeleting}
+                      className="flex-1 py-3.5 rounded-2xl bg-destructive text-white font-semibold text-sm flex items-center justify-center disabled:opacity-50"
+                    >
+                      {isDeleting ? (
+                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        "Delete"
+                      )}
+                    </button>
+                  </div>
+                </>
+              )}
             </motion.div>
           </>
         )}
       </AnimatePresence>
     </div>
   );
-};
+};;
 
 export default GroupDetailPage;

@@ -24,7 +24,26 @@ export type CreateGroupPayload = {
 };
 
 async function createGroup(payload: CreateGroupPayload, creatorId: string) {
-  // 1. Create the group
+  // Check creator can afford their own share before creating
+  if (payload.type === "BILL" && payload.splitType === "EQUAL") {
+    const shareAmount = payload.targetAmount / (payload.memberIds.length + 1);
+
+    const { data: wallet, error: walletError } = await supabase
+      .from("Wallet")
+      .select("balance")
+      .eq("userId", creatorId)
+      .single();
+
+    if (walletError) throw walletError;
+
+    if (Number(wallet.balance) < shareAmount) {
+      throw new Error(
+        `Insufficient balance. Your share would be ${shareAmount.toFixed(2)} TJS but you only have ${Number(wallet.balance).toFixed(2)} TJS.`,
+      );
+    }
+  }
+
+  // Rest of the existing creation logic unchanged
   const { data: group, error: groupError } = await supabase
     .from("Group")
     .insert({
@@ -46,21 +65,19 @@ async function createGroup(payload: CreateGroupPayload, creatorId: string) {
 
   if (groupError) throw groupError;
 
-  // 2. Add creator as admin member
   const membersToInsert = [
     {
       groupId: group.id,
       userId: creatorId,
       isAdmin: true,
-      status: "COMMITTED", // ← already there, but make sure shareAmount is set
+      status: "COMMITTED",
       shareAmount:
         payload.type === "BILL" && payload.splitType === "EQUAL"
           ? payload.targetAmount / (payload.memberIds.length + 1)
           : payload.type === "BILL" && payload.splitType === "CUSTOM"
-            ? null // custom — admin sets manually
-            : null, // goal — no share amount
+            ? null
+            : null,
     },
-    // 3. Add all invited members
     ...payload.memberIds.map((userId) => ({
       groupId: group.id,
       userId,
@@ -79,7 +96,6 @@ async function createGroup(payload: CreateGroupPayload, creatorId: string) {
 
   if (membersError) throw membersError;
 
-  // 4. Insert NEW_INVITE notifications for each invited member
   if (payload.memberIds.length > 0) {
     const notifications = payload.memberIds.map((userId) => ({
       userId,

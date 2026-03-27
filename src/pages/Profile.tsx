@@ -18,12 +18,24 @@ import { useCurrentUser } from "@/context/SessionContext";
 import { useEditUser } from "@/hooks/useEditUser";
 import supabase from "@/supabase";
 
-const menuItems = [
-  { icon: Globe, label: "Language", value: "English", path: "/language" },
+type MenuItem = {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  toggle: boolean;
+  path?: string;
+  value?: string | number;
+};
+
+const menuItems: MenuItem[] = [
   { icon: Bell, label: "Notifications", toggle: true },
   { icon: Moon, label: "Dark Mode", toggle: true },
-  { icon: Shield, label: "Security", path: "/security" },
-  { icon: HelpCircle, label: "Help & Support", path: "/support" },
+  { icon: Shield, label: "Security", toggle: false, path: "/security" },
+  {
+    icon: HelpCircle,
+    label: "Help & Support",
+    toggle: false,
+    path: "/support",
+  },
 ];
 
 async function handleLogout(navigate: NavigateFunction) {
@@ -32,11 +44,10 @@ async function handleLogout(navigate: NavigateFunction) {
 }
 
 const Profile = () => {
-
-    const navigate = useNavigate();
-    const { user, isLoading } = useCurrentUser();
-    const { mutate: editUser, isPending: isUploadingAvatar } = useEditUser();
-    const avatarInputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
+  const { user, isLoading } = useCurrentUser();
+  const { mutate: editUser, isPending: isUploadingAvatar } = useEditUser();
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const [toggles, setToggles] = useState<Record<string, boolean>>(() => ({
     Notifications: true,
@@ -53,12 +64,12 @@ const Profile = () => {
     }
   }, [toggles["Dark Mode"]]);
 
-  // TODO: 
+  // TODO:
   // Replace with some loading animation component
-  if (!user) { 
-      navigate('/auth/login');
+  if (!user) {
+    navigate("/auth/login");
   }
-  if (isLoading) return <div>Loading...</div>
+  if (isLoading) return <div>Loading...</div>;
 
   // Initials fallback from name or username
   const initials = (user?.name ?? user?.username ?? "?")
@@ -161,22 +172,22 @@ const Profile = () => {
               <span className="text-foreground text-sm font-medium flex-1 text-left">
                 {item.label}
               </span>
-              {item.toggle ? (
+              {!item.toggle ? (
+                <div className="flex items-center gap-1">
+                  {"value" in item && item.value && (
+                    <span className="text-muted-foreground text-xs">
+                      {String(item.value)}
+                    </span>
+                  )}
+                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                </div>
+              ) : (
                 <Switch
                   checked={toggles[item.label] ?? false}
                   onCheckedChange={(checked) =>
                     setToggles((prev) => ({ ...prev, [item.label]: checked }))
                   }
                 />
-              ) : (
-                <div className="flex items-center gap-1">
-                  {item.value && (
-                    <span className="text-muted-foreground text-xs">
-                      {item.value}
-                    </span>
-                  )}
-                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                </div>
               )}
             </motion.div>
           );
