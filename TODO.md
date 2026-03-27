@@ -5,8 +5,10 @@
 - Adding collaborators to db...
 - Recalculate amount of contributed to the group and change it in the db...
 
-- Add Notification Logic(Read, Accept, Reject). (almost куль, repeating user problem and inviting ADMIN...)
-
+- Add Notification Logic(Read, Accept, Reject). (куль)
+- Add notifications button to every page
+- Add members to goals
+- Transactions when split even
 
 - Add goals to database with all the params (can't do this one with out creating goal collaborators...(куль)
 
