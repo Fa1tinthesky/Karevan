@@ -16,7 +16,7 @@ import { formatDistanceToNow } from "date-fns";
 const quickActions = [
   { icon: Send, label: "Transfer", route: "/wallet" },
   { icon: Smartphone, label: "Top Up", route: null },
-  { icon: Zap, label: "Pay Bills", route: "/wallet" },
+  { icon: Zap, label: "Pay Bills", route: "/groups" },
   { icon: Wifi, label: "Internet", route: null },
 ];
 
