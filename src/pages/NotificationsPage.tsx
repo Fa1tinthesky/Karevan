@@ -71,6 +71,7 @@ const NotificationsPage = () => {
       <div className="gradient-primary px-5 pt-12 pb-6 rounded-b-[2rem]">
         <div className="flex items-center justify-between">
           <button
+            sx={{cursor: "pointer"}}
             onClick={() => navigate(-1)}
             className="w-9 h-9 rounded-xl bg-primary-foreground/20 flex items-center justify-center"
           >
