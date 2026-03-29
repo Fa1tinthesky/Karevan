@@ -15,6 +15,7 @@ import Profile from "@/pages/Profile.tsx";
 import NotificationsPage from "@/pages/NotificationsPage.tsx";
 import GroupDetailPage from "@/pages/GroupDetailsPage.tsx";
 import GroupsPage from "@/pages/GroupsPage.tsx"
+import TransactionsPage from "@/pages/TransactionsPage.tsx"
 
 const router = createBrowserRouter([
   // I recommend you reflect the routes here in the pages folder
@@ -54,6 +55,10 @@ const router = createBrowserRouter([
               {
                 path: "/groups",
                 element: <GroupsPage />,
+              },
+              {
+                path: "/transactions",
+                element: <TransactionsPage />,
               },
             ],
           },
