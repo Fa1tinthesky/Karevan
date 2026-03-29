@@ -8,6 +8,7 @@ import {
 import { UserSearchInput } from "@/components/UserSearchInput";
 import { type SearchedUser } from "../hooks/useSearchUsers";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useCurrentUser } from "@/context/SessionContext";
 
 type Props = {
   open: boolean;
@@ -57,6 +58,7 @@ type FormState = {
   contributionAmount: string;
   visibility: "PRIVATE" | "COLLABORATIVE" | "PUBLIC";
   members: SearchedUser[];
+  memberShares: Record<string, string>;
 };
 
 const initial: FormState = {
@@ -72,14 +74,14 @@ const initial: FormState = {
   contributionAmount: "",
   visibility: "PRIVATE",
   members: [],
+  memberShares: {},
 };
 
 export const CreateGroupSheet = ({ open, onClose }: Props) => {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormState>(initial);
   const { mutate: createGroup, isPending } = useCreateGroup();
-  // Add this state at the top of CreateGroupSheet
-  const [createError, setCreateError] = useState<string | null>(null);
+  const { user } = useCurrentUser();
 
   const set = (key: keyof FormState, value: any) =>
     setForm((p) => ({ ...p, [key]: value }));
@@ -93,33 +95,66 @@ export const CreateGroupSheet = ({ open, onClose }: Props) => {
       if (!form.targetAmount || isNaN(Number(form.targetAmount))) return false;
       return true;
     }
+    if (step === 2 && form.type === "BILL" && form.splitType === "CUSTOM") {
+      const target = Number(form.targetAmount);
+      const adminShare = Number(form.memberShares["__admin__"] ?? 0);
+      const membersTotal = form.members.reduce(
+        (sum, m) => sum + Number(form.memberShares[m.id] ?? 0),
+        0,
+      );
+      const total = adminShare + membersTotal;
+      // must equal target exactly, and admin must have set their share
+      if (Math.abs(total - target) > 0.01) return false;
+      if (!adminShare || adminShare <= 0) return false;
+    }
     return true;
   };
 
-  // Update handleSubmit
   const handleSubmit = () => {
-    setCreateError(null);
+    const remappedShares =
+      form.splitType === "CUSTOM"
+        ? Object.fromEntries(
+            Object.entries(form.memberShares).map(([k, v]) => [
+              k === "__admin__" ? user!.id : k,
+              Number(v),
+            ]),
+          )
+        : undefined;
+
     const payload: CreateGroupPayload = {
       type: form.type,
-      title: form.title,
+      title: form.title.trim(),
+      description: form.description.trim() || undefined,
       targetAmount: Number(form.targetAmount),
       memberIds: form.members.map((m) => m.id),
+      ...(form.type === "BILL"
+        ? {
+            category: form.category,
+            splitType: form.splitType,
+            destination: form.destination || undefined,
+            deadline: form.deadline || null,
+            // pass memberShares for CUSTOM (includes admin share keyed by session userId)
+            memberShares: remappedShares,
+          }
+        : {
+            frequency: form.frequency,
+            contributionAmount: Number(form.contributionAmount) || undefined,
+            visibility: form.visibility,
+          }),
     };
 
     createGroup(payload, {
       onSuccess: () => {
         setForm(initial);
         setStep(0);
-        setCreateError(null);
         onClose();
       },
       onError: (err: any) => {
-        setCreateError(err.message ?? "Failed to create group");
+        // surface the error — add an error state to form or use a toast
+        alert(err.message); // replace with your toast system
       },
     });
   };
-
-  // Add this above the footer CTA button in the sheet JSX
 
   const handleClose = () => {
     setForm(initial);
@@ -458,7 +493,6 @@ export const CreateGroupSheet = ({ open, onClose }: Props) => {
                 </div>
               )}
 
-              {/* STEP 2 — Members */}
               {step === 2 && (
                 <div className="space-y-4">
                   <p className="text-sm text-muted-foreground">
@@ -471,16 +505,163 @@ export const CreateGroupSheet = ({ open, onClose }: Props) => {
 
                   {(form.type === "BILL" ||
                     form.visibility === "COLLABORATIVE") && (
-                    <UserSearchInput
-                      selectedUsers={form.members}
-                      onAdd={(u) => set("members", [...form.members, u])}
-                      onRemove={(id) =>
-                        set(
-                          "members",
-                          form.members.filter((m) => m.id !== id),
-                        )
-                      }
-                    />
+                    <>
+                      <UserSearchInput
+                        selectedUsers={form.members}
+                        onAdd={(u) => {
+                          set("members", [...form.members, u]);
+                          // init their share as empty string
+                          set("memberShares", {
+                            ...form.memberShares,
+                            [u.id]: "",
+                          });
+                        }}
+                        onRemove={(id) => {
+                          set(
+                            "members",
+                            form.members.filter((m) => m.id !== id),
+                          );
+                          const next = { ...form.memberShares };
+                          delete next[id];
+                          set("memberShares", next);
+                        }}
+                      />
+
+                      {/* Custom split inputs — shown per-member when CUSTOM */}
+                      {form.type === "BILL" &&
+                        form.splitType === "CUSTOM" &&
+                        form.members.length > 0 && (
+                          <div className="space-y-3">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                              Set each person's share
+                            </p>
+
+                            {/* Admin's own share */}
+                            <div className="flex items-center gap-3 p-3 rounded-xl bg-secondary">
+                              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                                <span className="text-xs font-bold text-primary">
+                                  You
+                                </span>
+                              </div>
+                              <p className="text-sm font-medium text-foreground flex-1">
+                                You (admin)
+                              </p>
+                              <div className="flex items-center gap-1">
+                                <input
+                                  type="number"
+                                  placeholder="0"
+                                  value={form.memberShares["__admin__"] ?? ""}
+                                  onChange={(e) =>
+                                    set("memberShares", {
+                                      ...form.memberShares,
+                                      ["__admin__"]: e.target.value,
+                                    })
+                                  }
+                                  className="w-24 px-3 py-2 rounded-lg bg-card text-sm text-foreground outline-none border border-border focus:border-primary text-right"
+                                />
+                                <span className="text-xs text-muted-foreground">
+                                  TJS
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Each invited member */}
+                            {form.members.map((member) => (
+                              <div
+                                key={member.id}
+                                className="flex items-center gap-3 p-3 rounded-xl bg-secondary"
+                              >
+                                <Avatar className="w-8 h-8 flex-shrink-0">
+                                  <AvatarImage src={member.avatarUrl ?? ""} />
+                                  <AvatarFallback className="text-xs bg-primary/20 text-primary">
+                                    {(member.name ?? member.username)
+                                      .slice(0, 2)
+                                      .toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <p className="text-sm font-medium text-foreground flex-1 min-w-0 truncate">
+                                  {member.name ?? member.username}
+                                </p>
+                                <div className="flex items-center gap-1">
+                                  <input
+                                    type="number"
+                                    placeholder="0"
+                                    value={form.memberShares[member.id] ?? ""}
+                                    onChange={(e) =>
+                                      set("memberShares", {
+                                        ...form.memberShares,
+                                        [member.id]: e.target.value,
+                                      })
+                                    }
+                                    className="w-24 px-3 py-2 rounded-lg bg-card text-sm text-foreground outline-none border border-border focus:border-primary text-right"
+                                  />
+                                  <span className="text-xs text-muted-foreground">
+                                    TJS
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+
+                            {/* Running total vs target */}
+                            {(() => {
+                              const adminShare = Number(
+                                form.memberShares["__admin__"] ?? 0,
+                              );
+                              const membersTotal = form.members.reduce(
+                                (sum, m) =>
+                                  sum + Number(form.memberShares[m.id] ?? 0),
+                                0,
+                              );
+                              const total = adminShare + membersTotal;
+                              const target = Number(form.targetAmount);
+                              const diff = target - total;
+                              const isOver = total > target;
+                              const isExact = total === target;
+
+                              return (
+                                <div
+                                  className="flex justify-between items-center p-3 rounded-xl border"
+                                  style={{
+                                    borderColor: isOver
+                                      ? "hsl(var(--destructive))"
+                                      : isExact
+                                        ? "hsl(var(--primary))"
+                                        : "hsl(var(--border))",
+                                    background: isOver
+                                      ? "hsl(var(--destructive) / 0.08)"
+                                      : isExact
+                                        ? "hsl(var(--primary) / 0.08)"
+                                        : "transparent",
+                                  }}
+                                >
+                                  <span className="text-xs text-muted-foreground">
+                                    Total assigned
+                                  </span>
+                                  <span
+                                    className="text-sm font-semibold"
+                                    style={{
+                                      color: isOver
+                                        ? "hsl(var(--destructive))"
+                                        : isExact
+                                          ? "hsl(var(--primary))"
+                                          : "hsl(var(--foreground))",
+                                    }}
+                                  >
+                                    {total.toLocaleString()} /{" "}
+                                    {target.toLocaleString()} TJS
+                                    {isOver && " ⚠️ over"}
+                                    {isExact && " ✓"}
+                                    {!isOver &&
+                                      !isExact &&
+                                      diff > 0 &&
+                                      ` (${diff.toLocaleString()} remaining)`}
+                                  </span>
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        )}
+                    </>
                   )}
 
                   {/* Summary */}
@@ -532,12 +713,6 @@ export const CreateGroupSheet = ({ open, onClose }: Props) => {
                 </div>
               )}
             </div>
-
-            {createError && (
-              <p className="text-destructive text-xs text-center px-2">
-                {createError}
-              </p>
-            )}
 
             {/* Footer CTA */}
             <div className="px-5 py-4 border-t border-border">

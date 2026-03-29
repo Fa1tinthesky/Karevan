@@ -23,10 +23,7 @@ async function fetchNotifications(userId: string): Promise<AppNotification[]> {
   const { data, error } = await supabase
     .from("Notification")
     .select(
-      `
-      id, type, title, body, read, createdAt, groupId,
-      group:Group(id, title, type)
-    `,
+      `id, type, title, body, read, createdAt, groupId, group:Group(id, title, type)`,
     )
     .eq("userId", userId)
     .order("createdAt", { ascending: false })
@@ -40,7 +37,8 @@ async function fetchNotifications(userId: string): Promise<AppNotification[]> {
 }
 
 export const notificationKeys = {
-  all: () => ["notifications"] as const,
+  // ← FIXED: all() now matches the shape of mine() so invalidation works
+  all: (userId: string) => ["notifications", "mine", userId] as const,
   mine: (userId: string) => ["notifications", "mine", userId] as const,
 };
 
@@ -61,7 +59,6 @@ export const useUnreadCount = () => {
   return data.filter((n) => !n.read).length;
 };
 
-// Mark all as read
 export const useMarkAllRead = () => {
   const { session } = useSession();
   const queryClient = useQueryClient();
@@ -76,7 +73,10 @@ export const useMarkAllRead = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: notificationKeys.all() });
+      // ← FIXED: pass userId so the key matches
+      queryClient.invalidateQueries({
+        queryKey: notificationKeys.all(session!.user.id),
+      });
     },
   });
 };
@@ -89,28 +89,42 @@ export const useAcceptInvite = () => {
     mutationFn: async ({
       groupId,
       notificationId,
+      groupType,
     }: {
       groupId: string;
       notificationId: string;
+      groupType: "BILL" | "GOAL"; // ← new
     }) => {
-      // Call the RPC — this checks balance and locks money properly
-      const { error } = await supabase.rpc("commit_to_group", {
-        p_group_id: groupId,
-        p_user_id: session!.user.id,
-      });
+      if (groupType === "BILL") {
+        // BILL — RPC handles balance check + wallet lock
+        const { error } = await supabase.rpc("commit_to_group", {
+          p_group_id: groupId,
+          p_user_id: session!.user.id,
+        });
+        if (error) throw error;
+      } else {
+        // GOAL — just mark as COMMITTED, no money involved
+        const { error } = await supabase
+          .from("GroupMember")
+          .update({ status: "COMMITTED" })
+          .eq("groupId", groupId)
+          .eq("userId", session!.user.id);
+        if (error) throw error;
+      }
 
-      if (error) throw error;
-
-      // Mark notification as read
-      await supabase
-        .from("Notification")
-        .update({ read: true })
-        .eq("id", notificationId);
+      // ← FIXED: delete the notification so it never comes back
+      await supabase.from("Notification").delete().eq("id", notificationId);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: notificationKeys.all() });
+      queryClient.invalidateQueries({
+        queryKey: notificationKeys.all(session!.user.id),
+      });
       queryClient.invalidateQueries({ queryKey: groupKeys.all() });
       queryClient.invalidateQueries({ queryKey: userKeys.me() });
+    },
+    onError: (err: any) => {
+      // bubble the error up so NotificationsPage can show it
+      throw err;
     },
   });
 };
@@ -132,18 +146,15 @@ export const useDeclineInvite = () => {
         .update({ status: "DECLINED" })
         .eq("groupId", groupId)
         .eq("userId", session!.user.id);
-
       if (error) throw error;
 
-      await supabase
-        .from("Notification")
-        .update({ read: true })
-        .eq("id", notificationId);
-
-      return notificationId;
+      // ← FIXED: delete instead of just marking read
+      await supabase.from("Notification").delete().eq("id", notificationId);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: notificationKeys.all() });
+      queryClient.invalidateQueries({
+        queryKey: notificationKeys.all(session!.user.id),
+      });
       queryClient.invalidateQueries({ queryKey: groupKeys.all() });
     },
   });
