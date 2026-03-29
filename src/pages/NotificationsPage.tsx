@@ -9,6 +9,8 @@ import {
   useDeclineInvite,
 } from "@/hooks/useNotifications";
 import { formatDistanceToNow } from "date-fns";
+import { useEffect } from "react";
+
 
 const NOTIFICATION_ICONS: Record<string, string> = {
   NEW_INVITE: "👋",
@@ -37,6 +39,13 @@ const NotificationsPage = () => {
   const [errorMsg, setErrorMsg] = useState<string>("");
 
   const unreadCount = notifications.filter((n) => !n.read).length;
+
+  useEffect(() => {
+    // Auto-mark all as read when page opens
+    if (notifications.length > 0 && unreadCount > 0) {
+      markAllRead();
+    }
+  }, []);
 
   const handleAccept = (
     notificationId: string,

@@ -33,12 +33,24 @@ export const useContributeToGoal = (groupId: string) => {
 
   return useMutation({
     mutationFn: async (amount: number) => {
+      // Run the contribution RPC
       const { error } = await supabase.rpc("contribute_to_goal", {
         p_group_id: groupId,
         p_user_id: session!.user.id,
         p_amount: amount,
       });
       if (error) throw error;
+
+      // Flip member to COMMITTED if still INVITED
+      // (first contribution = they're now active participants)
+      const { error: statusError } = await supabase
+        .from("GroupMember")
+        .update({ status: "COMMITTED" })
+        .eq("groupId", groupId)
+        .eq("userId", session!.user.id)
+        .eq("status", "INVITED"); // only update if still INVITED, no-op otherwise
+
+      if (statusError) throw statusError;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -72,6 +84,7 @@ export const useSendToDestination = (groupId: string) => {
   });
 };
 
+// useDeleteGroup — was calling wrong RPC name
 export const useDeleteGroup = (groupId: string) => {
   const { session } = useSession();
   const queryClient = useQueryClient();
