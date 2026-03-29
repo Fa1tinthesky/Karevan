@@ -4,18 +4,19 @@ import { useSession } from "@/context/SessionContext";
 import { groupKeys } from "./useGroups";
 
 export type CreateGroupPayload = {
-  // shared
   type: "BILL" | "GOAL";
   title: string;
   description?: string;
   targetAmount: number;
-  memberIds: string[]; // user ids to invite
+  memberIds: string[];
 
   // BILL only
   category?: string;
   splitType?: "EQUAL" | "CUSTOM";
   destination?: string;
   deadline?: string | null;
+  // custom shares keyed by userId (includes admin)
+  memberShares?: Record<string, number>;
 
   // GOAL only
   frequency?: "DAILY" | "WEEKLY" | "MONTHLY";
@@ -24,26 +25,38 @@ export type CreateGroupPayload = {
 };
 
 async function createGroup(payload: CreateGroupPayload, creatorId: string) {
-  // Check creator can afford their own share before creating
-  if (payload.type === "BILL" && payload.splitType === "EQUAL") {
-    const shareAmount = payload.targetAmount / (payload.memberIds.length + 1);
+  // ── 1. Fetch admin wallet balance ──────────────────────────
+  const { data: wallet, error: walletError } = await supabase
+    .from("Wallet")
+    .select("id, balance")
+    .eq("userId", creatorId)
+    .single();
 
-    const { data: wallet, error: walletError } = await supabase
-      .from("Wallet")
-      .select("balance")
-      .eq("userId", creatorId)
-      .single();
+  if (walletError || !wallet) throw new Error("Could not fetch your wallet");
 
-    if (walletError) throw walletError;
+  const totalMembers = payload.memberIds.length + 1; // +1 for admin
 
-    if (Number(wallet.balance) < shareAmount) {
+  // ── 2. Compute admin share & validate balance ──────────────
+  let adminShare: number | null = null;
+
+  if (payload.type === "BILL") {
+    if (payload.splitType === "EQUAL") {
+      adminShare = payload.targetAmount / totalMembers;
+    } else if (payload.splitType === "CUSTOM") {
+      adminShare = payload.memberShares?.[creatorId] ?? null;
+    }
+
+    if (adminShare === null) {
+      throw new Error("Admin share amount is not set");
+    }
+    if (adminShare > Number(wallet.balance)) {
       throw new Error(
-        `Insufficient balance. Your share would be ${shareAmount.toFixed(2)} TJS but you only have ${Number(wallet.balance).toFixed(2)} TJS.`,
+        `Insufficient balance. Your share is ${adminShare.toLocaleString()} TJS but your balance is ${Number(wallet.balance).toLocaleString()} TJS`,
       );
     }
   }
 
-  // Rest of the existing creation logic unchanged
+  // ── 3. Create the group ────────────────────────────────────
   const { data: group, error: groupError } = await supabase
     .from("Group")
     .insert({
@@ -65,29 +78,32 @@ async function createGroup(payload: CreateGroupPayload, creatorId: string) {
 
   if (groupError) throw groupError;
 
+  // ── 4. Insert members — admin as INVITED (RPC will commit) ─
   const membersToInsert = [
     {
       groupId: group.id,
       userId: creatorId,
       isAdmin: true,
-      status: "COMMITTED",
-      shareAmount:
-        payload.type === "BILL" && payload.splitType === "EQUAL"
-          ? payload.targetAmount / (payload.memberIds.length + 1)
-          : payload.type === "BILL" && payload.splitType === "CUSTOM"
-            ? null
-            : null,
+      status: "INVITED", // ← key change: NOT "COMMITTED"
+      shareAmount: adminShare,
     },
-    ...payload.memberIds.map((userId) => ({
-      groupId: group.id,
-      userId,
-      isAdmin: false,
-      status: "INVITED",
-      shareAmount:
-        payload.type === "BILL" && payload.splitType === "EQUAL"
-          ? payload.targetAmount / (payload.memberIds.length + 1)
-          : null,
-    })),
+    ...payload.memberIds.map((userId) => {
+      let share: number | null = null;
+      if (payload.type === "BILL") {
+        if (payload.splitType === "EQUAL") {
+          share = payload.targetAmount / totalMembers;
+        } else if (payload.splitType === "CUSTOM") {
+          share = payload.memberShares?.[userId] ?? null;
+        }
+      }
+      return {
+        groupId: group.id,
+        userId,
+        isAdmin: false,
+        status: "INVITED",
+        shareAmount: share,
+      };
+    }),
   ];
 
   const { error: membersError } = await supabase
@@ -96,6 +112,16 @@ async function createGroup(payload: CreateGroupPayload, creatorId: string) {
 
   if (membersError) throw membersError;
 
+  // ── 5. Auto-commit admin via RPC (locks wallet, updates currentAmount) ─
+  if (payload.type === "BILL") {
+    const { error: commitError } = await supabase.rpc("commit_to_group", {
+      p_group_id: group.id,
+      p_user_id: creatorId,
+    });
+    if (commitError) throw commitError;
+  }
+
+  // ── 6. Notifications for invited members ──────────────────
   if (payload.memberIds.length > 0) {
     const notifications = payload.memberIds.map((userId) => ({
       userId,
@@ -105,7 +131,6 @@ async function createGroup(payload: CreateGroupPayload, creatorId: string) {
       body: `You were invited to "${payload.title}"`,
       read: false,
     }));
-
     await supabase.from("Notification").insert(notifications);
   }
 
