@@ -29,13 +29,13 @@ type MenuItem = {
 const menuItems: MenuItem[] = [
   { icon: Bell, label: "Notifications", toggle: true },
   { icon: Moon, label: "Dark Mode", toggle: true },
-  { icon: Shield, label: "Security", toggle: false, path: "/security" },
-  {
-    icon: HelpCircle,
-    label: "Help & Support",
-    toggle: false,
-    path: "/support",
-  },
+  // { icon: Shield, label: "Security", toggle: false, path: "/security" },
+  // {
+  //   icon: HelpCircle,
+  //   label: "Help & Support",
+  //   toggle: false,
+  //   path: "/support",
+  // },
 ];
 
 async function handleLogout(navigate: NavigateFunction) {

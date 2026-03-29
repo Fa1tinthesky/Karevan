@@ -135,12 +135,12 @@ const WalletPage = () => {
           transition={{ delay: 0.1 }}
           className="bg-card rounded-2xl p-4 shadow-card"
         >
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             {[
               { icon: Send, label: "Transfer", route: "/groups" },
-              { icon: Smartphone, label: "Top Up", route: null },
+              // { icon: Smartphone, label: "Top Up", route: null },
               { icon: Zap, label: "Pay Bills", route: "/groups" },
-              { icon: Wifi, label: "Internet", route: null },
+              // { icon: Wifi, label: "Internet", route: null },
             ].map((a) => (
               <button
                 key={a.label}

@@ -15,9 +15,9 @@ import { formatDistanceToNow } from "date-fns";
 
 const quickActions = [
   { icon: Send, label: "Transfer", route: "/wallet" },
-  { icon: Smartphone, label: "Top Up", route: null },
+  // { icon: Smartphone, label: "Top Up", route: null },
   { icon: Zap, label: "Pay Bills", route: "/groups" },
-  { icon: Wifi, label: "Internet", route: null },
+  // { icon: Wifi, label: "Internet", route: null },
 ];
 
 // Map transaction type to display config
@@ -140,7 +140,7 @@ const HomePage = () => {
           transition={{ delay: 0.1 }}
           className="bg-card rounded-2xl p-4 shadow-card"
         >
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             {quickActions.map((action) => (
               <button
                 key={action.label}
